@@ -1,0 +1,72 @@
+<div class="mcp-server-control">
+  <h2>MCP Server Control Panel</h2>
+  
+  <div class="server-status">
+    <div class="status-indicator" :class="{ 'running': serverInfo.isRunning, 'stopped': !serverInfo.isRunning }">
+      {{ serverInfo.isRunning ? 'RUNNING' : 'STOPPED' }}
+    </div>
+  </div>
+
+  <div class="server-config">
+    <h3>Server Configuration</h3>
+    
+    <div class="config-row">
+      <label for="port">Port:</label>
+      <ui-num-input 
+        id="port"
+        v-model="config.port" 
+        :disabled="serverInfo.isRunning"
+        :min="1000" 
+        :max="65535"
+        placeholder="3000">
+      </ui-num-input>
+    </div>
+    
+    <div class="config-row">
+      <label for="name">Server Name:</label>
+      <ui-input 
+        id="name"
+        v-model="config.name" 
+        :disabled="serverInfo.isRunning"
+        placeholder="cocos-mcp-server">
+      </ui-input>
+    </div>
+    
+    <div class="config-row">
+      <label for="version">Version:</label>
+      <span class="version-display">{{ VERSION }}</span>
+    </div>
+  </div>
+
+  <div class="server-controls">
+    <ui-button 
+      class="start-button" 
+      :class="{ green: !serverInfo.isRunning }"
+      :disabled="serverInfo.isRunning || isLoading"
+      @click="startServer">
+      {{ isLoading && !serverInfo.isRunning ? 'Starting...' : 'Start Server' }}
+    </ui-button>
+    
+    <ui-button 
+      class="stop-button"
+      :class="{ red: serverInfo.isRunning }"
+      :disabled="!serverInfo.isRunning || isLoading"
+      @click="stopServer">
+      {{ isLoading && serverInfo.isRunning ? 'Stopping...' : 'Stop Server' }}
+    </ui-button>
+  </div>
+
+  <div class="server-info" v-if="serverInfo.isRunning">
+    <h3>Server Information</h3>
+    <div class="info-row">
+      <strong>URL:</strong> http://localhost:{{ config.port }}
+    </div>
+    <div class="info-row">
+      <strong>Name:</strong> {{ config.name }}
+    </div>
+    <div class="info-row">
+      <strong>Version:</strong> {{ VERSION }}
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,134 @@
+/* Ensure scrollable container hierarchy */
+.panel-root {
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+}
+
+/* App container takes full height */
+#app {
+    height: 100%;
+    overflow: hidden;
+}
+
+.mcp-server-control {
+    padding: 20px;
+    font-family: var(--font-family);
+    height: 100%;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+/* Custom scrollbar styling for better appearance */
+.mcp-server-control::-webkit-scrollbar {
+    width: 8px;
+}
+
+.mcp-server-control::-webkit-scrollbar-track {
+    background: var(--color-normal-fill-secondary);
+    border-radius: 4px;
+}
+
+.mcp-server-control::-webkit-scrollbar-thumb {
+    background: var(--color-normal-fill-emphasis);
+    border-radius: 4px;
+}
+
+.mcp-server-control::-webkit-scrollbar-thumb:hover {
+    background: var(--color-focus-fill);
+}
+
+.mcp-server-control h2 {
+    color: var(--color-focus-contrast-strongest);
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--color-focus-fill);
+    padding-bottom: 10px;
+}
+
+.mcp-server-control h3 {
+    color: var(--color-normal-contrast-strongest);
+    margin: 20px 0 10px 0;
+}
+
+.server-status {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.status-indicator {
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.status-indicator.running {
+    background-color: var(--color-success-fill);
+    color: var(--color-success-contrast-strongest);
+}
+
+.status-indicator.stopped {
+    background-color: var(--color-danger-fill);
+    color: var(--color-danger-contrast-strongest);
+}
+
+.server-config {
+    margin-bottom: 20px;
+}
+
+.config-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.config-row label {
+    min-width: 120px;
+    color: var(--color-normal-contrast-strong);
+    font-weight: 500;
+}
+
+.version-display {
+    color: var(--color-normal-contrast-strongest);
+    font-weight: 500;
+    padding: 4px 8px;
+    background-color: var(--color-normal-fill-secondary);
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.server-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    justify-content: center;
+}
+
+.server-controls ui-button {
+    min-width: 120px;
+}
+
+.start-button.green {
+    background-color: var(--color-success-fill);
+}
+
+.stop-button.red {
+    background-color: var(--color-danger-fill);
+}
+
+.server-info {
+    background-color: var(--color-normal-fill-emphasis);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.info-row {
+    margin-bottom: 8px;
+    color: var(--color-normal-contrast-strong);
+}
+
+.info-row strong {
+    color: var(--color-normal-contrast-strongest);
+}
