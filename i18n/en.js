@@ -1,0 +1,1 @@
+"use strict";module.exports={open_panel:"MCP Server Control Panel",description:"MCP server with Streamable HTTP protocol to control Cocos Creator"};
