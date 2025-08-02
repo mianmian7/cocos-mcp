@@ -7,6 +7,21 @@ A Cocos Creator extension that implements a Model Context Protocol (MCP) server 
 ### MCP Server Capabilities
 - **Resources**: Read-only access to Cocos Creator's asset database
 - **Tools**: Actions for creating, modifying, and managing scenes, nodes, components, and assets
+- **AI Image Generation**: Integrate with multiple AI providers for automated asset creation
+
+### Core Tools
+- Scene management (create, modify, query nodes and components)
+- Asset operations (create, import, modify, query assets)
+- Project settings configuration
+- Prefab operations and management
+
+### AI Image Generation
+- **Multiple Provider Support**: Stable Diffusion, AUTOMATIC1111, OpenAI DALL-E, custom providers
+- **Dynamic Model Selection**: Automatically populated from configured providers
+- **Template Enhancement**: Use SVG content as init images for AI generation
+- **Flexible Input**: Text prompts, emoji, or SVG content
+- **Asset Integration**: Generated images automatically imported as Cocos Creator assets
+- **Provider Testing**: Built-in connectivity and functionality testing
 
 ### UI Panel
 - Start/Stop MCP server controls with real-time status indicator
@@ -49,6 +64,33 @@ npm run build
 5. Start the MCP server
 6. Connect MCP clients to `http://localhost:{port}/mcp`
 
+### AI Image Generation Setup
+
+1. **Configure Providers**: Use the extension's AI Image Generation config panel
+2. **Add Models**: Configure available models for each provider through the UI
+3. **Test Connectivity**: Verify provider setup with the built-in test function
+4. **Generate Assets**: Use the `generate_image_asset` MCP tool
+
+#### Quick Start with Local Stable Diffusion
+
+1. Open the AI Image Generation config panel in Cocos Creator
+2. Add a new Stable Diffusion provider pointing to `http://localhost:7860`
+3. Configure your models through the UI
+4. Test the connection
+
+Then generate assets via MCP:
+```javascript
+{
+  "prompt": "A fantasy sword with blue glowing runes",
+  "destination": "db://assets/weapons/magic-sword.png",
+  "assetType": "sprite-frame",
+  "model": "your-configured-model",
+  "provider": "your-provider-id"
+}
+```
+
+See the [AI Image Generation Guide](docs/ai-image-generation-guide.md) for complete documentation.
+
 ## Available Resources
 
 - `db://{path}` - Universal access to Cocos Creator database with asset information
@@ -89,6 +131,9 @@ npm run build
 ### **Material & Project Settings**
 - `set_materials_properties` - Updates properties of materials: texture, color, effect, etc. (Note: Internal materials are protected)
 - `operate_project_settings` - Optionally set project settings and get current values
+
+### **File Operations**
+- `operate_scripts_and_text` - Tool for agents who can't work with project files directly. Performs operations like reading file content (with optional line range), writing content to files (with optional line insertion), searching for patterns, and getting file information. Supports filtering and common text file operations.
 
 ## Technical Implementation
 

@@ -10,10 +10,11 @@ export function registerGetAssetsByTypeTool(server: McpServer): void {
       title: "Get Assets By Type",
       description: "Returns assets for a given asset type",
       inputSchema: {
-        ccType: z.string().describe("Asset ccType to search for (e.g., 'cc.Prefab', 'cc.Material', 'cc.Texture2D')")
+        ccType: z.string().describe("Asset ccType to search for (e.g., 'cc.Prefab', 'cc.Material', 'cc.Texture2D')"),
+        lookForTemplates: z.boolean().optional().default(false).describe("Look for templates in db://internal")
       }
     },
-    async ({ ccType }) => {
+    async ({ ccType, lookForTemplates }) => {
       await Editor.Message.request('scene', 'execute-scene-script', { name: packageJSON.name, method: 'startCaptureSceneLogs', args: [] });
       try {
         const errors: string[] = [];
@@ -22,28 +23,27 @@ export function registerGetAssetsByTypeTool(server: McpServer): void {
         try {
           // Query for assets of the specified type
           const assetInfos = await Editor.Message.request('asset-db', 'query-assets', {
-            ccType: ccType
+            pattern: (lookForTemplates ? 'db://internal/**' : 'db://assets/**')
           });
 
           if (assetInfos && Array.isArray(assetInfos)) {
             assets = assetInfos
-              .filter((assetInfo: any) => assetInfo && assetInfo.url)
+              .filter((assetInfo: any) => assetInfo && assetInfo.url && (assetInfo.type == ccType || assetInfo.extends.includes(ccType)))
               .map((assetInfo: any) => ({
                 name: assetInfo.name || 'Unknown',
                 url: assetInfo.url,
                 uuid: McpServerManager.encodeUuid(assetInfo.uuid),
-                isTemplate: assetInfo.url.startsWith('db://internal/')
               }))
               .sort((a, b) => a.name.localeCompare(b.name)); // Sort by name for better UX
           }
 
           // If no results found, provide helpful message
           if (assets.length === 0) {
-            errors.push(`No templates found for asset type '${ccType}' in db://internal/** directories`);
+            errors.push(`No assets found for asset type '${ccType}'`);
           }
 
         } catch (queryError) {
-          errors.push(`Error querying templates for asset type '${ccType}': ${queryError instanceof Error ? queryError.message : String(queryError)}`);
+          errors.push(`Error querying assets for asset type '${ccType}': ${queryError instanceof Error ? queryError.message : String(queryError)}`);
         }
 
         // Build response message
@@ -52,7 +52,7 @@ export function registerGetAssetsByTypeTool(server: McpServer): void {
         if (assets.length > 0) {
           result.assets = assets;
         } else {
-          result.errors = [ `No templates found for asset type '${ccType}'. Tip: Use 'get-available-asset-types' tool to see all available asset types.` ];
+          result.errors = [ `No assets found for asset type '${ccType}'. Tip: Use 'get-available-asset-types' tool to see all available asset types.` ];
         }
 
         if (errors.length > 0) {
@@ -77,8 +77,8 @@ export function registerGetAssetsByTypeTool(server: McpServer): void {
       } catch (error) {
         const capturedLogs: Array<string> = 
           await Editor.Message.request('scene', 'execute-scene-script', { name: packageJSON.name, method: 'getCapturedSceneLogs', args: [] });
-        
-        let result: any = { error: `Error retrieving templates for asset type '${ccType}': ${error instanceof Error ? error.message : String(error)}` };
+
+        let result: any = { error: `Error retrieving assets for asset type '${ccType}': ${error instanceof Error ? error.message : String(error)}` };
         if (capturedLogs.length > 0) {
           result.logs = capturedLogs;
         }

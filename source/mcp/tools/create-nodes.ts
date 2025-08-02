@@ -1,12 +1,21 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import packageJSON from '../../../package.json';
 import { McpServerManager } from "../server-manager";
-import { ExecuteSceneScriptMethodOptions } from "@cocos/creator-types/editor/packages/scene/@types/public";
-import { ComponentDescription, getComponentInfo, tryToAddComponent } from "../utils";
+import { getComponentInfo, tryToAddComponent } from "../utils";
+import packageJSON from '../../../package.json';
 
 export function registerCreateNodesTool(server: McpServer): void {
-  const nodeTypesMap : { [key: string]: { url: string, requireCanvas: boolean} } = {
+  // Helper function to get root scene node
+  const getRootSceneNode = async (): Promise<string> => {
+    const hierarchy = await Editor.Message.request('scene', 'query-node-tree') as any;
+    if (hierarchy && hierarchy.uuid) {
+      return hierarchy.uuid;
+    } else {
+      throw new Error("No scene loaded");
+    }
+  };
+
+  const nodeTypesMap: { [key: string]: { url: string, requireCanvas: boolean} } = {
     "3D/Capsule": { url: "db://internal/default_prefab/3d/Capsule.prefab", requireCanvas: false },
     "3D/Cone": { url: "db://internal/default_prefab/3d/Cone.prefab", requireCanvas: false },
     "3D/Cube": { url: "db://internal/default_prefab/3d/Cube.prefab", requireCanvas: false },
@@ -47,256 +56,290 @@ export function registerCreateNodesTool(server: McpServer): void {
     "Terrain": { url: "db://internal/default_prefab/Terrain.prefab", requireCanvas: false }
   };
 
-  const mobilityTypes: { [key: string] : number } = {
+  const mobilityTypes: { [key: string]: number } = {
     "Static": 0,
     "Stationary": 1,
     "Movable": 2
-  }
+  };
+
+  // Build enum arrays from constants for consistency
+  const nodeTypeValues = ["Prefab", "Empty", ...Object.keys(nodeTypesMap)];
+  const mobilityValues = ["Static", "Stationary", "Movable"] as const;
 
   server.registerTool(
     "create_nodes",
     {
-      title: "Batch Create Nodes",
-      description: "Creates nodes using type, name, components, and transform. Supports prefabs",
+      title: "Create Multiple Nodes",
+      description: "Creates multiple nodes with specified types, components, and properties. Returns all component UUIDs for later configuration.",
       inputSchema: {
-        parentUuid: z.string().describe("parent node UUID (scene root if not set)").optional(),
         nodes: z.array(z.object({
-          nodeType: z.enum([
-            "3D/Capsule", "3D/Cone", "3D/Cube", "3D/Cylinder", "3D/Plane", "3D/Quad", "3D/Sphere", "3D/Torus",
-            "2D/SpriteRenderer", "2D/Graphics", "2D/Label", "2D/Mask", "2D/ParticleSystem2D", "2D/Sprite", "2D/SpriteSplash", "2D/TiledMap",
-            "UI/Button", "UI/Canvas", "UI/EditBox", "UI/Layout", "UI/PageView", "UI/ProgressBar", "UI/RichText", "UI/ScrollView", "UI/Slider", "UI/Toggle", "UI/ToggleGroup", "UI/VideoPlayer", "UI/WebView", "UI/Widget",
-            "Light/Directional", "Light/Sphere", "Light/Spot", "Light/LightProbeGroup", "Light/ReflectionProbe",
-            "ParticleSystem", "Camera", "Terrain", "Empty", "Prefab"
-          ]).describe("One of default types or Empty/Prefab"),
-          prefabUuid: z.string().describe("prefab UUID (if nodeType is Prefab)").optional(),
-          componentTypes: z.array(z.string()).describe("Array of component types to add").min(0),
-          name: z.string(),
+          type: z.enum(nodeTypeValues as [string, ...string[]]),
+          name: z.string().default("Node"),
+          components: z.array(z.string()).default([]).describe("Array of component types to add"),
+          // Flat properties for consistency with component property paths
           position: z.object({ x: z.number(), y: z.number(), z: z.number() }).optional(),
           eulerAngles: z.object({ x: z.number(), y: z.number(), z: z.number() }).optional(),
           scale: z.object({ x: z.number(), y: z.number(), z: z.number() }).optional(),
-          enabled: z.boolean().describe("Enabled in hierarchy").optional().default(true),
-          mobility: z.enum(["Static", "Stationary", "Movable"]).optional(),
-          layer: z.number().int().describe("Bitmask of layer, use only if aware of layer list").optional()
-        }))
+          prefabUuid: z.string().describe("Prefab UUID (required if type is Prefab)").optional(),
+          enabled: z.boolean().default(true).describe("Enabled in hierarchy"),
+          layer: z.number().describe("Bitmask of layer").optional(),
+          mobility: z.enum(mobilityValues).optional(),
+          siblingIndex: z.number().int().describe("Sibling index in parent node").optional()
+        })),
+        parentUuid: z.string().describe("Parent node UUID (scene root if not set)").optional()
       }
     },
-    async ({ parentUuid, nodes }) => {
-      await Editor.Message.request('scene', 'execute-scene-script', { name: packageJSON.name, method: 'startCaptureSceneLogs', args: [] });
+    async (args) => {
+      const { nodes, parentUuid } = args;
+      const results: any[] = [];
+      const errors: string[] = [];
+
       try {
+        // Get parent UUID or use root scene
+        let targetParentUuid: string | undefined;
         if (parentUuid) {
-          parentUuid = McpServerManager.decodeUuid(parentUuid);
+          targetParentUuid = McpServerManager.decodeUuid(parentUuid);
+        } else {
+          targetParentUuid = await getRootSceneNode();
         }
 
-        const createdNodes: Array<{ name: string; uuid: string; components: Array<ComponentDescription> }> = [];
-        const errors: string[] = [];
-
-        // Get root scene node if parent not specified
-        if (!parentUuid) {
-          const hierarchy = await Editor.Message.request('scene', 'query-node-tree') as any;
-          if (hierarchy && hierarchy.uuid) {
-            parentUuid = hierarchy.uuid;
-          } else {
-            throw new Error("No scene loaded and no parent specified");
-          }
-        }
-
-        // Process each node
-        for (let i = 0; i < nodes.length; i++) {
-          const nodeSpec = nodes[i];
+        for (const nodeSpec of nodes) {
           try {
-            let createdNodeUuid: string | null = null;
-
-            let prefabUuid: string | null = "";
+            let nodeUuid: string;
             
-            if (nodeSpec.nodeType == "Prefab") {
+            // Create node based on type
+            if (nodeSpec.type === "Empty") {
+              // Create empty node
+              const result = await Editor.Message.request('scene', 'create-node', {
+                parent: targetParentUuid
+              });
+              nodeUuid = Array.isArray(result) ? result[0] : result;
+            } else if (nodeSpec.type === "Prefab") {
               if (!nodeSpec.prefabUuid) {
-                errors.push(`Node ${i + 1} (${nodeSpec.name}): prefabUuid is required for Prefab node type`);
+                errors.push(`Prefab UUID is required for node type "Prefab"`);
                 continue;
-              } else {
-                prefabUuid = McpServerManager.decodeUuid(nodeSpec.prefabUuid);
               }
-            } else {
-              if (nodeSpec.nodeType != "Empty") {
-                let assetInfo = await Editor.Message.request('asset-db', 'query-asset-info', nodeTypesMap[nodeSpec.nodeType].url);
+              
+              // Check if prefabUuid is a URL (starts with db://) or actual UUID
+              let assetUuid: string;
+              if (nodeSpec.prefabUuid.startsWith("db://")) {
+                // It's a URL, need to query for UUID
+                const assetInfo = await Editor.Message.request('asset-db', 'query-asset-info', nodeSpec.prefabUuid);
                 if (!assetInfo) {
-                  errors.push(`Node ${i + 1} (${nodeSpec.name}): can't find template prefab for ${nodeSpec.nodeType}!`);
+                  errors.push(`Can't find prefab at ${nodeSpec.prefabUuid}`);
                   continue;
                 }
-                prefabUuid = assetInfo.uuid;
+                assetUuid = assetInfo.uuid;
+              } else {
+                // It's already a UUID, decode it
+                assetUuid = McpServerManager.decodeUuid(nodeSpec.prefabUuid);
               }
-            }
-
-            // Check if it's an internal prefab (should be unlinked)
-            let unlinkPrefab = true;
-            if (nodeSpec.nodeType == "Prefab")
-            {
-              unlinkPrefab = false;
-              try {
-                const assetInfo = await Editor.Message.request('asset-db', 'query-asset-info', prefabUuid);
-                if (assetInfo && assetInfo.url && assetInfo.url.startsWith('db://internal')) {
-                  unlinkPrefab = true;
-                }
-              } catch (error) {
-                console.warn('Failed to query asset meta for unlinkPrefab logic:', error);
-              }
-            }
-
-            if (unlinkPrefab) {
-              // Create unlinked node from prefab
-              createdNodeUuid = await Editor.Message.request('scene', 'create-node', {
-                parent: parentUuid,
-                assetUuid: prefabUuid,
-                name: nodeSpec.name,
-                unlinkPrefab: true,
-                canvasRequired: nodeTypesMap[nodeSpec.nodeType]?.requireCanvas || false
-              }) as unknown as string;
-            } else {
-              // Use native scene code to create linked prefab
-              createdNodeUuid = await Editor.Message.request('scene', 'execute-scene-script', { 
-                name: packageJSON.name, 
-                method: 'createNodeFromPrefab', 
-                args: [nodeSpec.name, prefabUuid, parentUuid] 
+              
+              // Create prefab instance
+              const result = await Editor.Message.request('scene', 'create-node', {
+                parent: targetParentUuid,
+                assetUuid: assetUuid
               });
+              nodeUuid = Array.isArray(result) ? result[0] : result;
+            } else {
+              // Create node from template - first get the actual UUID
+              const template = nodeTypesMap[nodeSpec.type];
+              if (!template) {
+                errors.push(`Unknown node type: ${nodeSpec.type}`);
+                continue;
+              }
+
+              try {
+                // Query asset info to get the actual UUID from the URL
+                const assetInfo = await Editor.Message.request('asset-db', 'query-asset-info', template.url);
+                if (!assetInfo) {
+                  errors.push(`Can't find template prefab for ${nodeSpec.type} at ${template.url}`);
+                  continue;
+                }
+
+                const result = await Editor.Message.request('scene', 'create-node', {
+                  parent: targetParentUuid,
+                  assetUuid: assetInfo.uuid,
+                  name: nodeSpec.name,
+                  unlinkPrefab: true,
+                  canvasRequired: template.requireCanvas
+                });
+                nodeUuid = Array.isArray(result) ? result[0] : result;
+              } catch (templateError) {
+                errors.push(`Error creating ${nodeSpec.type} node: ${templateError instanceof Error ? templateError.message : String(templateError)}`);
+                continue;
+              }
             }
 
-            if (!createdNodeUuid) {
-              errors.push(`Node ${i + 1} (${nodeSpec.name}): Failed to create node`);
+            if (!nodeUuid) {
+              errors.push(`Failed to create node of type ${nodeSpec.type}`);
               continue;
             }
 
-            // Set node properties
-            const nodeProperties: Array<{ path: string; value: any; type: string }> = [];
+            const encodedNodeUuid = McpServerManager.encodeUuid(nodeUuid);
 
-            if (nodeSpec.position) {
+            // Set basic node properties
+            const nodeProperties: any[] = [];
+
+            if (nodeSpec.name !== undefined) {
+              nodeProperties.push({ path: 'name', value: nodeSpec.name, type: 'String' });
+            }
+
+            if (nodeSpec.position !== undefined) {
               nodeProperties.push({ path: 'position', value: nodeSpec.position, type: 'cc.Vec3' });
             }
-            if (nodeSpec.eulerAngles) {
-              nodeProperties.push({ path: 'eulerAngles', value: nodeSpec.eulerAngles, type: 'cc.Vec3' });
+
+            if (nodeSpec.eulerAngles !== undefined) {
+              nodeProperties.push({ path: 'rotation', value: nodeSpec.eulerAngles, type: 'cc.Vec3' });
             }
-            if (nodeSpec.scale) {
+
+            if (nodeSpec.scale !== undefined) {
               nodeProperties.push({ path: 'scale', value: nodeSpec.scale, type: 'cc.Vec3' });
             }
+
             if (nodeSpec.enabled !== undefined) {
               nodeProperties.push({ path: 'active', value: nodeSpec.enabled, type: 'Boolean' });
             }
-            if (nodeSpec.mobility !== undefined) {
-              nodeProperties.push({ path: 'mobility', value: mobilityTypes[nodeSpec.mobility], type: 'Enum' });
-            }
+
             if (nodeSpec.layer !== undefined) {
               nodeProperties.push({ path: 'layer', value: nodeSpec.layer, type: 'Number' });
             }
 
-            // Apply properties
-            for (const prop of nodeProperties) {
-              try {
-                await Editor.Message.request('scene', 'set-property', {
-                  uuid: createdNodeUuid,
-                  path: prop.path,
-                  dump: { value: prop.value, type: prop.type }
-                } as any);
-              } catch (propError) {
-                errors.push(`Node ${i + 1} (${nodeSpec.name}): Failed to set ${prop.path} - ${propError instanceof Error ? propError.message : String(propError)}`);
-              }
+            if (nodeSpec.mobility !== undefined) {
+              const mobilityValue = mobilityTypes[nodeSpec.mobility];
+              nodeProperties.push({ path: 'mobility', value: mobilityValue, type: 'Number' });
             }
 
-            const components: Array<ComponentDescription> = [];
-
-            if (nodeSpec.componentTypes.length > 0) {
-              let availableComponentTypes: string[] = [];
-
-              // Get available component types for validation (will be included in result if any components fail)
-              try {
-                const options: ExecuteSceneScriptMethodOptions = {
-                  name: packageJSON.name,
-                  method: 'queryComponentTypes',
-                  args: []
-                };
-                availableComponentTypes = await Editor.Message.request('scene', 'execute-scene-script', options);
-              } catch (queryError) {
-                errors.push(`Warning: Could not retrieve available component types: ${queryError instanceof Error ? queryError.message : String(queryError)}`);
-              }
-
-              // Add each component to this node
-              for (const componentType of nodeSpec.componentTypes) {
+            // Apply node properties if any
+            if (nodeProperties.length > 0) {
+              // Apply properties individually (correct API based on operate-nodes.ts)
+              for (const prop of nodeProperties) {
                 try {
-                  // Validate component type
-                  const isCorrectComponentType: boolean = 
-                    await Editor.Message.request('scene', 'execute-scene-script', 
-                      { name: packageJSON.name, method: 'isCorrectComponentType', args: [componentType] });
-
-                  if (!isCorrectComponentType) {
-                    errors.push(`Node ${i + 1} (${createdNodeUuid}): Component type '${componentType}' is not valid`);
-                    continue;
-                  }
-
-                  const newComponent = await tryToAddComponent(createdNodeUuid, componentType);
-                  if (newComponent.error) {
-                    errors.push(`Node ${i + 1} (${createdNodeUuid}): Error adding component: ${newComponent.error}`);
-                  } else {
-                    components.push(newComponent);
-                  }
-                } catch (addComponentError) {
-                  errors.push(`Node ${i + 1} (${createdNodeUuid}): Error adding component: ${addComponentError instanceof Error ? addComponentError.message : String(addComponentError)}`);
+                  await Editor.Message.request('scene', 'set-property', {
+                    uuid: nodeUuid,
+                    path: prop.path,
+                    dump: { value: prop.value, type: prop.type }
+                  });
+                } catch (propError) {
+                  errors.push(`Error setting ${prop.path} on node ${nodeSpec.name}: ${propError instanceof Error ? propError.message : String(propError)}`);
                 }
               }
             }
 
-            // Get node info to extract components
-            const nodeInfo = await Editor.Message.request('scene', 'query-node', createdNodeUuid);
-            
-            if (nodeInfo && nodeInfo.__comps__) {
-              for (const comp of nodeInfo.__comps__) {
-                if (comp.value && typeof comp.value === 'object' && 'uuid' in comp.value) {
-                  const compValue = comp.value as any;
-                  if (!components.some(c => c.uuid == compValue.uuid.value)) {
-                    const compInfo = await getComponentInfo(compValue.uuid.value, true, false);
-                    if (compInfo.error) {
-                      errors.push(`Node ${i + 1} (${createdNodeUuid}): Error getting component info: ${compInfo.error}`);
-                    } else {
-                      components.push(compInfo);
+            // Handle sibling index separately (similar to operate-nodes.ts)
+            if (nodeSpec.siblingIndex !== undefined) {
+              try {
+                const nodeInfo = await Editor.Message.request('scene', 'query-node', nodeUuid);
+                const parentUuid = nodeInfo?.parent?.value?.uuid;
+                if (!parentUuid || parentUuid.length === 0) {
+                  errors.push(`Node ${nodeSpec.name} has no parent for sibling index setting`);
+                } else {
+                  const parentNode = await Editor.Message.request('scene', 'query-node', parentUuid);
+                  const childrenArray = parentNode.children;
+                  if (!childrenArray || !Array.isArray(childrenArray)) {
+                    errors.push(`Parent node has no children array for sibling index setting`);
+                  } else {
+                    const currentIndex = childrenArray.findIndex(child => child.value.uuid === nodeUuid);
+                    if (currentIndex !== -1 && currentIndex !== nodeSpec.siblingIndex) {
+                      const targetIndex = Math.min(nodeSpec.siblingIndex, childrenArray.length - 1);
+                      const offset = targetIndex - currentIndex;
+                      await Editor.Message.request('scene', 'move-array-element', {
+                        uuid: parentUuid,
+                        path: 'children',
+                        target: currentIndex,
+                        offset: offset,
+                      });
+                    }
+                  }
+                }
+              } catch (siblingError) {
+                errors.push(`Error setting sibling index on node ${nodeSpec.name}: ${siblingError instanceof Error ? siblingError.message : String(siblingError)}`);
+              }
+            }
+
+            // Add new components and collect all component UUIDs
+            const allComponents: Array<{ uuid: string, type: string }> = [];
+
+            // First, add any new components specified
+            for (const componentType of nodeSpec.components) {
+              try {
+                const componentDescription = await tryToAddComponent(nodeUuid, componentType, false);
+                if (componentDescription.uuid) {
+                  allComponents.push({
+                    uuid: componentDescription.uuid,
+                    type: componentType
+                  });
+                } else {
+                  errors.push(`Failed to add component ${componentType} to node ${nodeSpec.name}: ${componentDescription.error || 'Unknown error'}`);
+                }
+              } catch (componentError) {
+                errors.push(`Error adding component ${componentType}: ${componentError instanceof Error ? componentError.message : String(componentError)}`);
+              }
+            }
+
+            // Get all components on the node (including existing ones from prefabs)
+            try {
+              const nodeInfo = await Editor.Message.request('scene', 'query-node', nodeUuid);
+              if (nodeInfo && nodeInfo.__comps__) {
+                for (const comp of nodeInfo.__comps__) {
+                  if (comp.value && typeof comp.value === 'object' && 'uuid' in comp.value) {
+                    const compValue = comp.value as any;
+                    const compUuid = compValue.uuid.value;
+                    // Only add if not already in our list
+                    if (!allComponents.some(c => c.uuid === McpServerManager.encodeUuid(compUuid))) {
+                      const compInfo = await getComponentInfo(compUuid, false, false);
+                      if (compInfo.type && !compInfo.error) {
+                        allComponents.push({
+                          uuid: McpServerManager.encodeUuid(compUuid),
+                          type: compInfo.type
+                        });
+                      }
                     }
                   }
                 }
               }
+            } catch (getComponentError) {
+              errors.push(`Error getting existing components for node ${nodeSpec.name}: ${getComponentError instanceof Error ? getComponentError.message : String(getComponentError)}`);
             }
 
-            createdNodes.push({
-              name: nodeSpec.name,
-              uuid: McpServerManager.encodeUuid(createdNodeUuid),
-              components: components
-            });
+            let result: any = {
+              uuid: encodedNodeUuid,
+              name: nodeSpec.name
+            };
+            if (allComponents.length > 0) {
+              result.components = allComponents;
+            }
+
+            results.push(result);
 
           } catch (nodeError) {
-            errors.push(`Node ${i + 1} (${nodeSpec.name}): ${nodeError instanceof Error ? nodeError.message : String(nodeError)}`);
+            errors.push(`Error creating node ${nodeSpec.name}: ${nodeError instanceof Error ? nodeError.message : String(nodeError)}`);
           }
         }
 
-        const result: any = {
-          createdNodes: createdNodes
-        }
+        const result = {
+          nodes: results,
+          successCount: results.length,
+          totalNodes: nodes.length,
+          errors: errors.length > 0 ? errors : undefined
+        };
 
-        if (errors.length > 0) {
-          result.errors = errors;
-        }
-
-        const capturedLogs: Array<string> = 
-          await Editor.Message.request('scene', 'execute-scene-script', { name: packageJSON.name, method: 'getCapturedSceneLogs', args: [] });
-        if (capturedLogs.length > 0) {
-          result.logs = capturedLogs;
-        }
+        await Editor.Message.request('scene', 'snapshot');
 
         return {
-          content: [{ type: "text", text: JSON.stringify(result) }]
+          content: [{
+            type: "text",
+            text: JSON.stringify(result)
+          }]
         };
 
       } catch (error) {
-        const capturedLogs: Array<string> = 
-          await Editor.Message.request('scene', 'execute-scene-script', { name: packageJSON.name, method: 'getCapturedSceneLogs', args: [] });
-        
-        const result: any = { error: `Error creating nodes: ${error instanceof Error ? error.message : String(error)}` };
-        if (capturedLogs.length > 0) {
-          result.logs = capturedLogs;
-        }
+        const result = {
+          nodes: [],
+          successCount: 0,
+          totalNodes: nodes.length,
+          errors: [`Global error: ${error instanceof Error ? error.message : String(error)}`]
+        };
 
         return {
           content: [{

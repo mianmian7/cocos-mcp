@@ -21,107 +21,6 @@ module.exports = Editor.Panel.define({
         app: '#app',
     },
     methods: {
-        async 'generate-image-from-svg'(svgContent: string) {
-            try {
-                // Call the local method to generate the image
-                return await this.generateImageFromSVG(svgContent);
-            } catch (error) {
-                console.error('Panel: Error generating image from SVG:', error);
-                throw error;
-            }
-        },
-        
-        /**
-         * Generate PNG image from SVG content using Canvas API
-         * This method should be called from the MCP server tool
-         */
-        async generateImageFromSVG(svgContent: string): Promise<Buffer> {
-            return new Promise((resolve, reject) => {
-                try {
-                    // Create a new image element
-                    const img = new Image();
-                    
-                    img.onload = () => {
-                        try {
-                            // Create canvas with appropriate size
-                            const canvas = document.createElement('canvas');
-                            const ctx = canvas.getContext('2d');
-                            
-                            if (!ctx) {
-                                reject(new Error('Failed to get 2D context from canvas'));
-                                return;
-                            }
-                            
-                            // Set canvas size (default 512x512, but use image size if available)
-                            canvas.width = img.naturalWidth || 512;
-                            canvas.height = img.naturalHeight || 512;
-                            
-                            // Draw the image on canvas
-                            ctx.drawImage(img, 0, 0);
-                            
-                            // Convert canvas to PNG blob
-                            canvas.toBlob((blob) => {
-                                if (!blob) {
-                                    reject(new Error('Failed to convert canvas to blob'));
-                                    return;
-                                }
-                                
-                                // Convert blob to buffer
-                                const reader = new FileReader();
-                                reader.onload = () => {
-                                    const arrayBuffer = reader.result as ArrayBuffer;
-                                    const buffer = Buffer.from(arrayBuffer);
-                                    resolve(buffer);
-                                };
-                                reader.onerror = () => {
-                                    reject(new Error('Failed to read blob as array buffer'));
-                                };
-                                reader.readAsArrayBuffer(blob);
-                            }, 'image/png');
-                            
-                        } catch (error) {
-                            reject(new Error(`Canvas operation failed: ${error}`));
-                        }
-                    };
-                    
-                    img.onerror = () => {
-                        reject(new Error('Failed to load SVG image'));
-                    };
-                    
-                    // Create data URL from SVG content
-                    let svgDataUrl: string;
-                    if (svgContent.startsWith('data:')) {
-                        // Already a data URL
-                        svgDataUrl = svgContent;
-                    } else if (svgContent.startsWith('<svg')) {
-                        // Raw SVG content - convert to data URL
-                        // Encode SVG content for data URL
-                        const encodedSvg = encodeURIComponent(svgContent);
-                        svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodedSvg}`;
-                    } else {
-                        // Assume it's emoji or text content - create simple SVG
-                        const simpleSvg = this.createSvgFromText(svgContent);
-                        const encodedSvg = encodeURIComponent(simpleSvg);
-                        svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodedSvg}`;
-                    }
-                    
-                    // Load the SVG
-                    img.src = svgDataUrl;
-                    
-                } catch (error) {
-                    reject(new Error(`SVG processing failed: ${error}`));
-                }
-            });
-        },
-        
-        /**
-         * Create a simple SVG from text content (especially useful for emojis)
-         */
-        createSvgFromText(text: string): string {
-            return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-                <text x="256" y="400" text-anchor="middle" font-size="400" font-family="system-ui, -apple-system, sans-serif">${text}</text>
-            </svg>`;
-        },
     },
     ready() {
         if (this.$.app) {
@@ -138,12 +37,14 @@ module.exports = Editor.Panel.define({
                             config: { 
                                 port: 3000, 
                                 name: 'cocos-mcp-server', 
-                                version: VERSION 
+                                version: VERSION,
+                                tools: {}
                             }
                         },
                         config: {
                             port: 3000,
-                            name: 'cocos-mcp-server'
+                            name: 'cocos-mcp-server',
+                            tools: {}
                         },
                         isLoading: false
                     };
@@ -153,13 +54,13 @@ module.exports = Editor.Panel.define({
                         this.isLoading = true;
                         
                         try {
-                            // Create a plain object to avoid Vue reactivity issues
-                            const configData = {
+                            // Create a deep copy to avoid Vue reactivity issues
+                            const configData = JSON.parse(JSON.stringify({
                                 port: Number(this.config.port) || 3000,
                                 name: String(this.config.name) || 'cocos-mcp-server',
-                                version: this.VERSION
-                            };
-                            console.log('Sending config data:', configData);
+                                version: this.VERSION,
+                                tools: this.config.tools
+                            }));
                             const result = await Editor.Message.request('cocos-mcp', 'start-mcp-server', configData);
                             if (result && result.success) {
                                 await this.refreshServerInfo();
@@ -190,33 +91,117 @@ module.exports = Editor.Panel.define({
                         }
                     },
                     
+                    async saveConfig() {
+                        this.isLoading = true;
+                        
+                        try {
+                            const configData = JSON.parse(JSON.stringify({
+                                port: Number(this.config.port) || 3000,
+                                name: String(this.config.name) || 'cocos-mcp-server',
+                                version: this.VERSION,
+                                tools: this.config.tools
+                            }));
+                            
+                            const result = await Editor.Message.request('cocos-mcp', 'update-mcp-server-config', configData);
+                            if (result && result.success) {
+                                // Configuration saved successfully
+                            } else {
+                                console.error(`Failed to save config: ${result ? result.message : 'Unknown error'}`);
+                            }
+                        } catch (error) {
+                            console.error(`Error saving config: ${error}`);
+                        } finally {
+                            this.isLoading = false;
+                        }
+                    },
+                    
                     async refreshServerInfo() {
                         try {
                             const info = await Editor.Message.request('cocos-mcp', 'get-mcp-server-info');
-                            // Create plain objects to avoid reactivity issues
-                            this.serverInfo = {
+                            // Create deep copies to avoid reactivity issues
+                            this.serverInfo = JSON.parse(JSON.stringify({
                                 isRunning: info.isRunning,
                                 config: {
                                     port: info.config.port,
                                     name: info.config.name,
-                                    version: this.VERSION
+                                    version: this.VERSION,
+                                    tools: info.config.tools
                                 }
-                            };
-                            this.config = {
-                                port: info.config.port,
-                                name: info.config.name
-                            };
+                            }));
+                            
+                            // Only update local config if server is running to avoid overriding user changes
+                            if (info.isRunning && info.config.tools) {
+                                this.config = JSON.parse(JSON.stringify({
+                                    port: info.config.port,
+                                    name: info.config.name,
+                                    tools: info.config.tools
+                                }));
+                            } else if (!info.isRunning) {
+                                // When server is not running, only update port and name, keep tool config as-is
+                                this.config.port = info.config.port;
+                                this.config.name = info.config.name;
+                            }
                         } catch (error) {
                             console.error('Error getting server info:', error);
                         }
+                    },
+                    
+                    getActiveToolsCount() {
+                        return Object.values(this.config.tools).filter(Boolean).length;
+                    },
+                    
+                    getTotalToolsCount() {
+                        return Object.keys(this.config.tools).length;
+                    },
+                    
+                    // Event handlers for ui-checkbox components
+                    onOperateScriptsAndTextChange(event: any): void {
+                        const newValue = event.target.value;
+                        (this.config.tools as any).operateScriptsAndText = newValue;
+                        this.saveConfig();
+                    },
+                    
+                    onExecuteSceneCodeChange(event: any): void {
+                        const newValue = event.target.value;
+                        (this.config.tools as any).executeSceneCode = newValue;
+                        this.saveConfig();
+                    },
+                    
+                    // Generic handler for all tool checkboxes
+                    onToolChange(toolName: string, event: any) {
+                        const newValue = event.target.value;
+                        (this.config.tools as any)[toolName] = newValue;
+                        this.saveConfig();
                     }
                 },
                 
                 async mounted() {
+                    // Load initial config from server
                     await this.refreshServerInfo();
-                    // Refresh server status every 5 seconds
+                    
+                    // Initialize local config with server config
+                    this.config = {
+                        port: this.serverInfo.config.port,
+                        name: this.serverInfo.config.name,
+                        tools: { ...this.serverInfo.config.tools }
+                    };
+                    
+                    // Only refresh server status periodically, but don't override config if server is stopped
                     setInterval(async () => {
-                        await this.refreshServerInfo();
+                        try {
+                            const info = await Editor.Message.request('cocos-mcp', 'get-mcp-server-info');
+                            // Only update server status, don't override local config changes
+                            this.serverInfo.isRunning = info.isRunning;
+                            this.serverInfo.config.port = info.config.port;
+                            this.serverInfo.config.name = info.config.name;
+                            
+                            // Only sync tools config if server is actually running
+                            if (info.isRunning) {
+                                this.serverInfo.config.tools = info.config.tools;
+                            }
+                        } catch (error) {
+                            console.error('Error refreshing server status:', error);
+                        }
                     }, 5000);
                 },
                 

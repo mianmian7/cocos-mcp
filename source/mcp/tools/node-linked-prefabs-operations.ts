@@ -161,41 +161,28 @@ export function registerNodeLinkedPrefabsOperationsTool(server: McpServer): void
           errors.push(`Error accessing node: ${nodeError instanceof Error ? nodeError.message : String(nodeError)}`);
         }
 
-        // Build response message
-        let message = '';
-        
-        if (operationResult && operationResult.success) {
-          message = `Successfully performed '${operation}' operation on node '${nodeUuid}':\n`;
-          message += `- Result: ${operationResult.message}\n`;
-          
-          if (operationResult.prefabUuid) {
-            message += `- Prefab UUID: ${operationResult.prefabUuid}\n`;
-          }
-          if (operationResult.prefabUrl) {
-            message += `- Prefab URL: ${operationResult.prefabUrl}\n`;
-          }
-          if (operationResult.prefabPath) {
-            message += `- Prefab Path: ${operationResult.prefabPath}\n`;
-          }
-          if (operationResult.prefabName) {
-            message += `- Prefab Name: ${operationResult.prefabName}\n`;
-          }
-        } else {
-          message = `Failed to perform '${operation}' operation on node '${nodeUuid}'`;
-        }
-
-        if (errors.length > 0) {
-          message += `\n\nWarnings/Errors:\n${errors.join('\n')}`;
-        }
-
+        // Build compact JSON response
         const capturedLogs: Array<string> = 
           await Editor.Message.request('scene', 'execute-scene-script', { name: packageJSON.name, method: 'getCapturedSceneLogs', args: [] });
-        capturedLogs.forEach(log => message += ("\n" + log));
+
+        await Editor.Message.request('scene', 'snapshot');
+
+        const result = {
+          success: operationResult?.success || false,
+          operation: operation,
+          nodeUuid: nodeUuid,
+          ...(operationResult?.prefabUuid && { prefabUuid: operationResult.prefabUuid }),
+          ...(operationResult?.prefabUrl && { prefabUrl: operationResult.prefabUrl }),
+          ...(operationResult?.prefabPath && { prefabPath: operationResult.prefabPath }),
+          ...(operationResult?.prefabName && { prefabName: operationResult.prefabName }),
+          ...(errors.length > 0 && { errors: errors }),
+          ...(capturedLogs.length > 0 && { logs: capturedLogs })
+        };
 
         return {
           content: [{
             type: "text",
-            text: message
+            text: JSON.stringify(result, null, 2)
           }]
         };
 
@@ -203,13 +190,18 @@ export function registerNodeLinkedPrefabsOperationsTool(server: McpServer): void
         const capturedLogs: Array<string> = 
           await Editor.Message.request('scene', 'execute-scene-script', { name: packageJSON.name, method: 'getCapturedSceneLogs', args: [] });
         
-        let errorMessage = `Error performing prefab operation: ${error instanceof Error ? error.message : String(error)}`;
-        capturedLogs.forEach(log => errorMessage += ("\n" + log));
+        const errorResult = {
+          success: false,
+          operation: operation,
+          nodeUuid: nodeUuid,
+          error: error instanceof Error ? error.message : String(error),
+          ...(capturedLogs.length > 0 && { logs: capturedLogs })
+        };
 
         return {
           content: [{
             type: "text",
-            text: errorMessage
+            text: JSON.stringify(errorResult, null, 2)
           }]
         };
       }

@@ -1,13 +1,13 @@
 import path from "path";
 import { McpServerManager } from "./server-manager";
 import { array } from "zod";
+import packageJSON from '../../package.json';
 
 export type ComponentDescription = {
     uuid?: string,
     type?: string,
     properties?: {[path: string]: { type: string, value?: any, tooltip?: string, enumList?: string[] }},
     arrays?: {[path: string]: { type: string, tooltip?: string }},
-    help_document?: string
     error?: string,
 }
 
@@ -24,8 +24,10 @@ export async function getComponentInfo(component: string | object, includeProper
             if (!componentInfo) {
                 throw new Error(`Component with UUID "${decodedUuid}" not found`);
             }
+            componentDescription.uuid = decodedUuid;
         } else {
             componentInfo = component;
+            componentDescription.uuid = componentInfo.value?.uuid?.value;
         }
         
         if (!componentInfo) {
@@ -77,10 +79,11 @@ export async function getComponentInfo(component: string | object, includeProper
                         const simpleTypes = ['String', 'Number', 'Boolean', 'cc.ValueType', 'cc.Object'];
 
                         // Handle nested objects
+                        const propertyType = propertyData.type || 'Unknown';
                         if (propertyData.value && 
                             ((typeof propertyData.value === 'object' && 
-                                !simpleTypes.includes(propertyData.type) && 
-                                !(propertyData.extends && propertyData.extends.some((ext: string) => simpleTypes.includes(ext)))) 
+                                !simpleTypes.includes(propertyType) && 
+                                !(propertyData.extends && Array.isArray(propertyData.extends) && propertyData.extends.some((ext: string) => simpleTypes.includes(ext)))) 
                             || Array.isArray(propertyData.value))) {
                             const extractionResult = extractPropertiesRecursive(propertyData.value, currentPath);
                             Object.assign(properties, extractionResult.properties);
@@ -106,7 +109,7 @@ export async function getComponentInfo(component: string | object, includeProper
     return componentDescription;
 }
 
-export async function tryToAddComponent(nodeUuid: string, componentType: string): Promise<ComponentDescription> {
+export async function tryToAddComponent(nodeUuid: string, componentType: string, includeProperties: boolean): Promise<ComponentDescription> {
     try {
         await Editor.Message.request('scene', 'create-component', {
             uuid: nodeUuid,
@@ -117,7 +120,7 @@ export async function tryToAddComponent(nodeUuid: string, componentType: string)
         const updatedNodeInfo = await Editor.Message.request('scene', 'query-node', nodeUuid);
         if (updatedNodeInfo && updatedNodeInfo.__comps__ && updatedNodeInfo.__comps__.length > 0) {
             const lastAddedComponent = updatedNodeInfo.__comps__[updatedNodeInfo.__comps__.length - 1] as any;
-            return await getComponentInfo(lastAddedComponent, true, false); // Fetch full component details including properties
+            return await getComponentInfo(lastAddedComponent, includeProperties, false);
         } else {
             return { uuid: '', error: `Tried to add '${componentType}' but could not retrieve component info` };
         }
@@ -125,4 +128,141 @@ export async function tryToAddComponent(nodeUuid: string, componentType: string)
     } catch (componentError) {
         return { uuid: '', error: `Failed to add component '${componentType}' - ${componentError instanceof Error ? componentError.message : String(componentError)}` };
     }
+}
+
+export interface PropertySetSpec {
+    propertyPath: string;
+    propertyType: string;
+    propertyValue: any;
+}
+
+export interface PropertySetResult {
+    propertyPath: string;
+    success: boolean;
+    error?: string;
+}
+
+export async function setProperties(
+    targetNodeUuid: string,
+    pathPrefix: string,
+    properties: PropertySetSpec[]
+): Promise<PropertySetResult[]> {
+    const results: PropertySetResult[] = [];
+
+    for (const prop of properties) {
+        try {
+            // Preprocess property value for components, assets, and nodes
+            const isComponent: boolean = await Editor.Message.request('scene', 'execute-scene-script', 
+                { name: packageJSON.name, method: 'isCorrectComponentType', args: [prop.propertyType] });
+            const isAsset: boolean = await Editor.Message.request('scene', 'execute-scene-script',
+                { name: packageJSON.name, method: 'isCorrectAssetType', args: [prop.propertyType] });
+            const isNode: boolean = prop.propertyType === "cc.Node";
+
+            const preprocessProperty = async (rawProperty: any): Promise<any> => {
+                try {
+                    let result: any = {};
+
+                    if (isComponent || isAsset || isNode) {
+                        if (typeof rawProperty === 'string') {
+                            if (rawProperty.startsWith("db://")) {
+                                const assetInfo = await Editor.Message.request('asset-db', 'query-asset-info', rawProperty);
+                                if (!assetInfo) {
+                                    throw new Error(`Can't find asset with URL: ${rawProperty}`);
+                                }
+                                result = { uuid: assetInfo.uuid };
+                            } else {
+                                result = { uuid: McpServerManager.decodeUuid(rawProperty) };
+                            }
+                        } else if (rawProperty && typeof rawProperty === 'object' && rawProperty.hasOwnProperty('uuid')) {
+                            rawProperty.uuid = McpServerManager.decodeUuid(rawProperty.uuid);
+                            result = rawProperty;
+                        } else {
+                            result = rawProperty;
+                        }
+
+                        // Validate referenced objects exist and are of correct type
+                        if (result.uuid) {
+                            if (isComponent) {
+                                const component = await Editor.Message.request('scene', 'query-component', result.uuid);
+                                if (!component || component.type !== prop.propertyType) {
+                                    throw new Error(`Component with UUID "${result.uuid}" and type "${prop.propertyType}" not found`);
+                                }
+                            }
+                            if (isAsset) {
+                                const assetInfo = await Editor.Message.request('asset-db', 'query-asset-info', result.uuid);
+                                if (!assetInfo || assetInfo.type !== prop.propertyType) {
+                                    throw new Error(`Asset with UUID "${result.uuid}" and type "${prop.propertyType}" not found`);
+                                }
+                            }
+                            if (isNode) {
+                                const node = await Editor.Message.request('scene', 'query-node', result.uuid);
+                                if (!node) {
+                                    throw new Error(`Node with UUID "${result.uuid}" not found`);
+                                }
+                            }
+                        }
+
+                        return result;
+                    }
+
+                    return rawProperty;
+                } catch (typeCheckError) {
+                    // Continue with original value if type checking fails
+                    console.warn('Type checking failed:', typeCheckError);
+                    return rawProperty;
+                }
+            };
+
+            let processedValue: any;
+
+            // Handle string that might be JSON
+            let propertyValue = prop.propertyValue;
+            if (typeof propertyValue === 'string') {
+                try {
+                    const parsedFromJson = JSON.parse(propertyValue);
+                    if (parsedFromJson && Array.isArray(parsedFromJson)) {
+                        propertyValue = parsedFromJson;
+                    }
+                } catch (error) {
+                    // Keep original string value
+                }
+            }
+
+            // Handle array properties
+            if (Array.isArray(propertyValue)) {
+                processedValue = [];
+                for (let value of propertyValue) {
+                    const processedArrayValue = await preprocessProperty(value);
+                    processedValue.push({
+                        type: prop.propertyType,
+                        value: processedArrayValue
+                    });
+                }
+            } else {
+                processedValue = await preprocessProperty(propertyValue);
+            }
+
+            // Set the property
+            const fullPath = pathPrefix ? `${pathPrefix}.${prop.propertyPath}` : prop.propertyPath;
+            await Editor.Message.request('scene', 'set-property', {
+                uuid: targetNodeUuid,
+                path: fullPath,
+                dump: {
+                    value: processedValue,
+                    type: prop.propertyType
+                }
+            } as any);
+
+            results.push({ propertyPath: prop.propertyPath, success: true });
+
+        } catch (error) {
+            results.push({
+                propertyPath: prop.propertyPath,
+                success: false,
+                error: error instanceof Error ? error.message : String(error)
+            });
+        }
+    }
+
+    return results;
 }
