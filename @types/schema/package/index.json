@@ -52,7 +52,7 @@
         "version": {
             "type": "string",
             "description": "版本号字符串 / Version number string",
-            "default": "1.0.0"
+            "default": "1.0.1"
         }
     },
     "required": [
