@@ -47,21 +47,121 @@ export const methods: Record<string, (...args: any[]) => any> = {
     },
 
     /**
+     * Open image generator panel for SVG processing
+     */
+    async openImageGeneratorPanel() {
+        await Editor.Panel.open(`${packageJSON.name}.image-generator`);
+    },
+
+    /**
+     * Open AI configuration panel
+     */
+    async openAiConfigPanel() {
+        await Editor.Panel.open(`${packageJSON.name}.ai-config`);
+    },
+
+    /**
+     * Get AI image generation configuration
+     */
+    async getImageConfig() {
+        try {
+            const manager = await getServerManager();
+            return manager.getImageConfig();
+        } catch (error) {
+            console.error('Error getting image config:', error);
+            return {
+                imageGeneration: {
+                    providers: [],
+                    defaultProvider: '',
+                    globalSettings: {
+                        timeout: 30000,
+                        retries: 3,
+                        quality: 'high'
+                    }
+                }
+            };
+        }
+    },
+
+    /**
+     * Save AI image generation configuration
+     */
+    async saveImageConfig(config: any) {
+        try {
+            const manager = await getServerManager();
+            await manager.saveImageConfig(config);
+            return { success: true };
+        } catch (error) {
+            console.error('Error saving image config:', error);
+            return { 
+                success: false, 
+                message: error instanceof Error ? error.message : String(error) 
+            };
+        }
+    },
+
+    /**
+     * Test AI provider connection
+     */
+    async testProvider(params: { providerId: string; testPrompt: string }) {
+        try {
+            const manager = await getServerManager();
+            const result = await manager.testImageProvider(params.providerId, params.testPrompt);
+            return result;
+        } catch (error) {
+            console.error('Error testing provider:', error);
+            return { 
+                success: false, 
+                error: error instanceof Error ? error.message : String(error) 
+            };
+        }
+    },
+
+    /**
+     * Fetch available models from AI provider
+     */
+    async fetchProviderModels(params: { providerId: string }) {
+        try {
+            const manager = await getServerManager();
+            const result = await manager.fetchProviderModels(params.providerId);
+            return result;
+        } catch (error) {
+            console.error('Error fetching provider models:', error);
+            return { 
+                success: false, 
+                error: error instanceof Error ? error.message : String(error) 
+            };
+        }
+    },
+
+    /**
+     * Reset AI configuration to defaults
+     */
+    async resetImageConfig() {
+        try {
+            const manager = await getServerManager();
+            await manager.resetImageConfig();
+            return { success: true };
+        } catch (error) {
+            console.error('Error resetting image config:', error);
+            return { 
+                success: false, 
+                message: error instanceof Error ? error.message : String(error) 
+            };
+        }
+    },
+
+    /**
      * Start MCP server
      */
     async startMcpServer(config: any) {
         try {
             console.log('Starting MCP server with config:', config);
             
-            // Ensure config is serializable and clean
-            const cleanConfig = {
-                port: Number(config?.port) || 3000,
-                name: String(config?.name) || 'cocos-mcp-server',
-                version: String(config?.version) || '1.0.0'
-            };
-            
             const manager = await getServerManager();
-            manager.updateConfig(cleanConfig);
+            if (config) {
+                manager.updateConfig(config);
+            }
             await manager.startServer();
             
             return { success: true, message: "MCP server started successfully" };
@@ -99,20 +199,36 @@ export const methods: Record<string, (...args: any[]) => any> = {
         try {
             const manager = await getServerManager();
             const info = manager.getServerInfo();
-            // Return a clean copy to avoid any cloning issues
             return {
-                isRunning: !!info.isRunning,
-                config: {
-                    port: info.config.port || 3000,
-                    name: info.config.name || "cocos-mcp-server",
-                    version: info.config.version || "1.0.0"
-                }
+                isRunning: info.isRunning,
+                config: info.config
             };
         } catch (error) {
             console.error('Error getting server info:', error);
             return {
                 isRunning: false,
-                config: { port: 3000, name: "cocos-mcp-server", version: "1.0.0" }
+                config: {
+                    port: 3000,
+                    name: "cocos-mcp-server",
+                    version: "1.0.0",
+                    tools: {
+                        createNodes: true,
+                        modifyNodes: true,
+                        queryNodes: true,
+                        queryComponents: true,
+                        modifyComponents: true,
+                        operateCurrentScene: true,
+                        operatePrefabAssets: true,
+                        operateAssets: true,
+                        nodeLinkedPrefabsOperations: true,
+                        getAvailableComponentTypes: true,
+                        getAvailableAssetTypes: true,
+                        getAssetsByType: true,
+                        generateImageAsset: true,
+                        operateProjectSettings: true,
+                        operateScriptsAndText: true
+                    }
+                }
             };
         }
     },
@@ -122,15 +238,8 @@ export const methods: Record<string, (...args: any[]) => any> = {
      */
     async updateMcpServerConfig(config: any) {
         try {
-            // Ensure config is serializable and clean
-            const cleanConfig = {
-                port: Number(config?.port) || 3000,
-                name: String(config?.name) || 'cocos-mcp-server',
-                version: String(config?.version) || '1.0.0'
-            };
-            
             const manager = await getServerManager();
-            manager.updateConfig(cleanConfig);
+            manager.updateConfig(config);
             return { success: true };
         } catch (error) {
             return { 
@@ -155,5 +264,26 @@ export const methods: Record<string, (...args: any[]) => any> = {
 
     'update-mcp-server-config': async function(config: any) {
         return this.updateMcpServerConfig(config);
+    },
+
+    // AI Configuration method aliases
+    'get-image-config': async function() {
+        return this.getImageConfig();
+    },
+
+    'save-image-config': async function(config: any) {
+        return this.saveImageConfig(config);
+    },
+
+    'test-provider': async function(params: { providerId: string; testPrompt: string }) {
+        return this.testProvider(params);
+    },
+
+    'fetch-provider-models': async function(params: { providerId: string }) {
+        return this.fetchProviderModels(params);
+    },
+
+    'reset-image-config': async function() {
+        return this.resetImageConfig();
     }
 };

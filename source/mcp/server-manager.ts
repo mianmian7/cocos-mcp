@@ -5,34 +5,30 @@ import express from 'express';
 import { createServer, Server as HttpServer } from 'http';
 import { randomUUID } from 'crypto';
 
-// Import all resources
-import { registerDatabaseResource } from "./resources/database.js";
+// Import configuration
+import { McpServerConfig, DEFAULT_SERVER_CONFIG } from './config.js';
+import { ConfigStorage } from './config-storage.js';
+import { ImageGenerationService } from './services/image-generation-service.js';
 
-// Import all new tools
-import { registerInspectNodeHierarchyTool } from "./tools/inspect-node-hierarchy.js";
+// Import all tools
 import { registerCreateNodesTool } from "./tools/create-nodes.js";
-import { registerSetNodesPropertiesTool } from "./tools/set-nodes-properties.js";
-import { registerOperateNodesTool } from "./tools/operate-nodes.js";
-import { registerCreatePrefabFromNodeTool } from "./tools/create-prefab-from-node.js";
+import { registerModifyNodesTool } from "./tools/modify-nodes.js";
+import { registerQueryNodesTool } from "./tools/query-nodes.js";
+import { registerQueryComponentsTool } from "./tools/query-components.js";
+import { registerModifyComponentsTool } from "./tools/modify-components.js";
 import { registerNodeLinkedPrefabsOperationsTool } from "./tools/node-linked-prefabs-operations.js";
 import { registerGetAvailableComponentTypesTool } from "./tools/get-available-component-types.js";
-import { registerAddComponentsToNodesTool } from "./tools/add-components-to-nodes.js";
-import { registerRemoveComponentsTool } from "./tools/remove-components.js";
-import { registerInspectComponentsPropertiesTool } from "./tools/inspect-components-properties.js";
-import { registerSetComponentsPropertiesTool } from "./tools/set-components-properties.js";
 import { registerGetAvailableAssetTypesTool } from "./tools/get-available-asset-types.js";
-import { registerOperateAssetTool } from "./tools/operate-asset.js";
+import { registerOperateAssetsTool } from "./tools/operate-assets.js";
 import { registerGetAssetsByTypeTool } from "./tools/get-assets-by-type.js";
-import { registerCreateAssetFromTemplateTool } from "./tools/create-asset-from-template.js";
 import { registerGenerateImageAssetTool } from "./tools/generate-image-asset.js";
-import { registerOpenSceneTool } from "./tools/open-scene.js";
-import { registerSaveCurrentSceneOrPrefabTool } from "./tools/save-current-scene-or-prefab.js";
-import { registerOpenPrefabTool } from "./tools/open-prefab.js";
-import { registerClosePrefabTool } from "./tools/close-prefab.js";
-import { registerSetMaterialsPropertiesTool } from "./tools/set-materials-properties.js";
+import { registerOperateCurrentSceneTool } from "./tools/operate-current-scene.js";
 import { registerOperateProjectSettingsTool } from "./tools/operate-project-settings.js";
-import { register } from "module";
+import { registerOperatePrefabAssetsTool } from "./tools/operate-prefab-assets.js";
+import { registerOperateScriptsAndTextTool } from "./tools/operate-scripts-and-text.js";
+import { registerExecuteSceneCodeTool } from "./tools/execute-scene-code.js";
 
+// Legacy interface for backward compatibility
 export interface ServerConfig {
   port: number;
   name?: string;
@@ -40,58 +36,198 @@ export interface ServerConfig {
 }
 
 export class McpServerManager {
+  private static instance: McpServerManager | null = null;
   private server: McpServer | null = null;
   private transport: StreamableHTTPServerTransport | null = null;
   private httpServer: HttpServer | null = null;
   private expressApp: express.Application | null = null;
-  private config: ServerConfig = { port: 3000, name: "cocos-mcp-server", version: "1.0.0" };
+  private config: McpServerConfig = { ...DEFAULT_SERVER_CONFIG };
   private isRunning: boolean = false;
   private transports: { [sessionId: string]: StreamableHTTPServerTransport } = {};
+  private configStorage: ConfigStorage;
+  private imageGenerationService: ImageGenerationService;
 
-  constructor() {}
+  constructor() {
+    this.configStorage = new ConfigStorage();
+    // Load saved configuration on startup
+    this.config = this.configStorage.loadConfig();
+    
+    // Initialize image generation service
+    this.imageGenerationService = new ImageGenerationService(this.config.imageGeneration);
+    // Set static instance reference
+    McpServerManager.instance = this;
+  }
+
+  public static getInstance(): McpServerManager | null {
+    return McpServerManager.instance;
+  }
 
   private createMcpServer(): McpServer {
     const server = new McpServer({
-      name: this.config.name!,
-      version: this.config.version!
+      name: this.config.name,
+      version: this.config.version
     });
 
-    // Register all resources
-    registerDatabaseResource(server);
-
-    // Register all new tools
-    registerInspectNodeHierarchyTool(server);
-    registerCreateNodesTool(server);
-    registerSetNodesPropertiesTool(server);
-    registerOperateNodesTool(server);
-    registerCreatePrefabFromNodeTool(server);
-    registerNodeLinkedPrefabsOperationsTool(server);
-    registerGetAvailableComponentTypesTool(server);
-    registerAddComponentsToNodesTool(server);
-    registerRemoveComponentsTool(server);
-    registerInspectComponentsPropertiesTool(server);
-    registerSetComponentsPropertiesTool(server);
-    registerGetAvailableAssetTypesTool(server);
-    registerOperateAssetTool(server);
-    registerGetAssetsByTypeTool(server);
-    registerCreateAssetFromTemplateTool(server);
-    registerGenerateImageAssetTool(server);
-    registerOpenSceneTool(server);
-    registerSaveCurrentSceneOrPrefabTool(server);
-    registerOpenPrefabTool(server);
-    registerClosePrefabTool(server);
-    registerSetMaterialsPropertiesTool(server);
-    registerOperateProjectSettingsTool(server);
+    // Register tools based on configuration
+    const tools = this.config.tools;
+    console.log('Registering tools with config:', tools);
+    
+    // Core tools (always needed for basic functionality)
+    if (tools.createNodes) {
+      registerCreateNodesTool(server);
+    }
+    if (tools.modifyNodes) {
+      registerModifyNodesTool(server);
+    }
+    if (tools.queryNodes) {
+      registerQueryNodesTool(server);
+    }
+    if (tools.queryComponents) {
+      registerQueryComponentsTool(server);
+    }
+    if (tools.modifyComponents) {
+      registerModifyComponentsTool(server);
+    }
+    
+    // Scene and asset tools
+    if (tools.operateCurrentScene) {
+      registerOperateCurrentSceneTool(server);
+    }
+    if (tools.operatePrefabAssets) {
+      registerOperatePrefabAssetsTool(server);
+    }
+    if (tools.operateAssets) {
+      registerOperateAssetsTool(server);
+    }
+    if (tools.nodeLinkedPrefabsOperations) {
+      registerNodeLinkedPrefabsOperationsTool(server);
+    }
+    
+    // Discovery tools
+    if (tools.getAvailableComponentTypes) {
+      registerGetAvailableComponentTypesTool(server);
+    }
+    if (tools.getAvailableAssetTypes) {
+      registerGetAvailableAssetTypesTool(server);
+    }
+    if (tools.getAssetsByType) {
+      registerGetAssetsByTypeTool(server);
+    }
+    
+    // Generation tools
+    if (tools.generateImageAsset) {
+      console.log('Registering generateImageAsset tool...');
+      registerGenerateImageAssetTool(server, this);
+    } else {
+      console.log('generateImageAsset tool is disabled in config');
+    }
+    
+    // Project tools
+    if (tools.operateProjectSettings) {
+      registerOperateProjectSettingsTool(server);
+    }
+    
+    // File system tools (security-sensitive)
+    if (tools.operateScriptsAndText) {
+      registerOperateScriptsAndTextTool(server);
+    }
+    
+    // Code execution tools (security-sensitive)
+    if (tools.executeSceneCode) {
+      registerExecuteSceneCodeTool(server);
+    }
 
     return server;
   }
 
-  public updateConfig(config: Partial<ServerConfig>): void {
-    this.config = { ...this.config, ...config };
+  public updateConfig(config: Partial<McpServerConfig> | Partial<ServerConfig>): void {
+    // Handle legacy config format
+    if ('tools' in config) {
+      // New format with tools configuration - properly merge tools
+      const newConfig = config as Partial<McpServerConfig>;
+      this.config = {
+        ...this.config,
+        ...newConfig,
+        tools: {
+          ...this.config.tools,
+          ...newConfig.tools
+        },
+        imageGeneration: {
+          ...this.config.imageGeneration,
+          ...newConfig.imageGeneration
+        }
+      };
+    } else {
+      // Legacy format - update basic server settings only
+      const legacyConfig = config as Partial<ServerConfig>;
+      this.config = {
+        ...this.config,
+        port: legacyConfig.port ?? this.config.port,
+        name: legacyConfig.name ?? this.config.name,
+        version: legacyConfig.version ?? this.config.version
+      };
+    }
+    
+    // Update image generation service configuration
+    this.imageGenerationService.updateConfig(this.config.imageGeneration);
+    
+    // Save configuration to disk
+    this.configStorage.saveConfig(this.config);
   }
 
-  public getConfig(): ServerConfig {
+  public getConfig(): McpServerConfig {
     return { ...this.config };
+  }
+
+  public getServerInfo(): { isRunning: boolean; config: McpServerConfig } {
+    return {
+      isRunning: this.isRunning,
+      config: this.getConfig()
+    };
+  }
+
+  public getImageGenerationService(): ImageGenerationService {
+    return this.imageGenerationService;
+  }
+
+  public getImageConfig() {
+    return this.config.imageGeneration;
+  }
+
+  public async saveImageConfig(imageConfig: any) {
+    this.config.imageGeneration = imageConfig.imageGeneration || imageConfig;
+    this.imageGenerationService.updateConfig(this.config.imageGeneration);
+    this.configStorage.saveConfig(this.config);
+  }
+
+  public async testImageProvider(providerId: string, testPrompt: string = 'A simple test image') {
+    try {
+      const result = await this.imageGenerationService.testProvider(providerId, testPrompt);
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+
+  public async fetchProviderModels(providerId: string) {
+    try {
+      const result = await this.imageGenerationService.fetchAvailableModels(providerId);
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+
+  public async resetImageConfig() {
+    this.config.imageGeneration = { ...DEFAULT_SERVER_CONFIG.imageGeneration };
+    this.imageGenerationService.updateConfig(this.config.imageGeneration);
+    this.configStorage.saveConfig(this.config);
   }
 
   public isServerRunning(): boolean {
@@ -273,13 +409,6 @@ export class McpServerManager {
       console.error("Error stopping server:", error);
       throw error;
     }
-  }
-
-  public getServerInfo(): { isRunning: boolean; config: ServerConfig } {
-    return {
-      isRunning: this.isRunning,
-      config: this.getConfig()
-    };
   }
 
   public static encodeUuid(uuid: string): string {

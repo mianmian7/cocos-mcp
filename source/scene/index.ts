@@ -145,5 +145,87 @@ export const methods: Record<string, (...args: any[]) => any> = {
             console.error('Error applying prefab:', error);
             return false;
         }
+    },
+
+    async executeArbitraryCode(code: string, context: any = {}) {
+        try {
+            // Prepare execution context with commonly used globals
+            const cc = (globalThis as any)['cc'];
+            const cce = (globalThis as any)['cce'];
+            const Editor = (globalThis as any)['Editor'];
+            
+            // Create a safe execution environment
+            const executionContext = {
+                cc,
+                cce,
+                Editor,
+                console,
+                setTimeout: context.allowTimers ? setTimeout : undefined,
+                setInterval: context.allowTimers ? setInterval : undefined,
+                clearTimeout: context.allowTimers ? clearTimeout : undefined,
+                clearInterval: context.allowTimers ? clearInterval : undefined,
+                // Common utilities
+                JSON,
+                Math,
+                Date,
+                Array,
+                Object,
+                String,
+                Number,
+                Boolean,
+                Promise
+            };
+            
+            // Create function with controlled scope
+            const func = new Function(
+                ...Object.keys(executionContext),
+                `
+                "use strict";
+                try {
+                    ${code}
+                } catch (error) {
+                    throw new Error('Code execution error: ' + error.message);
+                }
+                `
+            );
+            
+            // Execute with timeout if specified
+            const timeout = context.timeout || 10000;
+            let timeoutId: NodeJS.Timeout | undefined;
+            
+            const executionPromise = new Promise((resolve, reject) => {
+                try {
+                    const result = func(...Object.values(executionContext));
+                    
+                    // Handle async results
+                    if (result && typeof result.then === 'function') {
+                        result.then(resolve).catch(reject);
+                    } else {
+                        resolve(result);
+                    }
+                } catch (error) {
+                    reject(error);
+                }
+            });
+            
+            const timeoutPromise = new Promise((_, reject) => {
+                timeoutId = setTimeout(() => {
+                    reject(new Error(`Code execution timed out after ${timeout}ms`));
+                }, timeout);
+            });
+            
+            try {
+                const result = await Promise.race([executionPromise, timeoutPromise]);
+                if (timeoutId) clearTimeout(timeoutId);
+                return result;
+            } catch (error) {
+                if (timeoutId) clearTimeout(timeoutId);
+                throw error;
+            }
+            
+        } catch (error) {
+            console.error('Error executing arbitrary code:', error);
+            throw error;
+        }
     }
 };

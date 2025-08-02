@@ -34,9 +34,11 @@ export function registerOperateProjectSettingsTool(server: McpServer): void {
         try {
           // 1. Set design resolution
           if (designResolution) {
-            const result = await Editor.Message.request('project', 'set-config', 'project', 'general.designResolution', designResolution);
-            if (!result) {
-              throw new Error("Failed to set design resolution");
+            for (const key of Object.keys(designResolution)) {
+              const result = await Editor.Message.request('project', 'set-config', 'project', `general.designResolution.${key}`, (designResolution as any)[key]);
+              if (!result) {
+                throw new Error("Failed to set design resolution");
+              }
             }
           }
 
@@ -210,6 +212,9 @@ export function registerOperateProjectSettingsTool(server: McpServer): void {
             result.errors = errors;
           }
         }
+
+        await Editor.Message.request('scene', 'soft-reload');
+        await Editor.Message.request('scene', 'snapshot');
 
         const capturedLogs: Array<string> = 
           await Editor.Message.request('scene', 'execute-scene-script', { name: packageJSON.name, method: 'getCapturedSceneLogs', args: [] });
