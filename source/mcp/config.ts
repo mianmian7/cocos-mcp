@@ -154,7 +154,7 @@ export const DEFAULT_TOOL_CONFIG: McpServerToolConfig = {
 export const DEFAULT_SERVER_CONFIG: McpServerConfig = {
   port: 3000,
   name: "cocos-mcp-server",
-  version: "1.0.0",
+  version: "1.0.1",
   tools: DEFAULT_TOOL_CONFIG,
   imageGeneration: DEFAULT_IMAGE_GENERATION_CONFIG
 };
