@@ -1,32 +1,96 @@
 # Cocos Creator MCP Server
 
-A Cocos Creator extension that implements a Model Context Protocol (MCP) server with Streamable HTTP transport. This extension exposes Cocos Creator's functionality through a standardized interface that can be used by AI assistants and other MCP clients.
+A Cocos Creator extension that implements a Model Context Protocol (MCP) server with Streamable HTTP transport. This extension runs **directly within Cocos Creator** - no external tools, bridges, or setup required. Simply install the extension and start connecting AI assistants to your game development workflow.
 
-## Features
+## Key Advantages
 
-### MCP Server Capabilities
-- **Resources**: Read-only access to Cocos Creator's asset database
-- **Tools**: Actions for creating, modifying, and managing scenes, nodes, components, and assets
-- **AI Image Generation**: Integrate with multiple AI providers for automated asset creation
+### 🚀 **Zero-Setup Integration**
+- **Runs In-Engine**: MCP server operates directly within Cocos Creator extension
+- **Streamable HTTP Transport**: Direct connection via `http://localhost:3000/mcp`
+- **No External Dependencies**: No need for additional tools, bridges, or complicated setup
+- **Instant Access**: One-click server start from the built-in control panel
 
-### Core Tools
-- Scene management (create, modify, query nodes and components)
-- Asset operations (create, import, modify, query assets)
-- Project settings configuration
-- Prefab operations and management
+### 🎯 **Compact Yet Comprehensive Toolset**
+A carefully curated collection of **16 powerful tools** designed for maximum AI efficiency:
 
-### AI Image Generation
-- **Multiple Provider Support**: Stable Diffusion, AUTOMATIC1111, OpenAI DALL-E, custom providers
-- **Dynamic Model Selection**: Automatically populated from configured providers
-- **Template Enhancement**: Use SVG content as init images for AI generation
-- **Flexible Input**: Text prompts, emoji, or SVG content
-- **Asset Integration**: Generated images automatically imported as Cocos Creator assets
-- **Provider Testing**: Built-in connectivity and functionality testing
+#### **🔍 Discovery & Inspection** (5 tools)
+- `query_nodes` - Inspect scene hierarchy with granular detail control
+- `query_components` - Discover component properties with types and tooltips  
+- `get_available_asset_types` - Enumerate all available asset types
+- `get_available_component_types` - Enumerate all available component types
+- `get_assets_by_type` - Query assets by specific type
 
-### UI Panel
-- Start/Stop MCP server controls with real-time status indicator
-- Configurable port settings (default: 3000)
-- Auto-refresh of server status every 5 seconds
+#### **🏗️ Creation & Modification** (4 tools)
+- `create_nodes` - Bulk node creation with components and transforms
+- `modify_nodes` - Batch property updates, hierarchy changes, component management
+- `modify_components` - Precise component configuration with UUID targeting
+- `generate_image_asset` - ⚡ Advanced AI-powered asset creation
+
+#### **📦 Asset & Project Management** (5 tools)
+- `operate_assets` - Comprehensive asset operations (create, copy, move, delete, inspect)
+- `operate_current_scene` - Scene lifecycle management (open, save, configure)
+- `operate_prefab_assets` - Full prefab workflow (create, edit, close)
+- `node_linked_prefabs_operations` - Prefab instance management (edit, unwrap, reset)
+- `operate_project_settings` - Project configuration (layers, collisions, design resolution)
+
+#### **🔧 Advanced Operations** (2 tools)
+- `execute_scene_code` - Direct TypeScript/JavaScript execution in scene context
+- `operate_scripts_and_text` - Comprehensive file operations (read, write, search, replace)
+
+### 🎨 **Experimental AI Image Generation**
+Transform your asset creation workflow with advanced AI capabilities:
+
+**Multi-Modal Generation Modes:**
+- **SVG/Emoji → Image**: Convert vector graphics or emoji to game assets
+- **Text → Image**: Generate assets from descriptive prompts
+- **SVG + Text → Image**: Use SVG as template/init image for AI enhancement
+
+**Provider Ecosystem:**
+- **AUTOMATIC1111**: WebUI integration (tested)
+- **Stable Diffusion**: Local or remote installations (untested)
+- **OpenAI DALL-E**: Cloud-based generation (untested)
+- **Custom Providers**: Extensible architecture for new services
+
+**Advanced Features:**
+- **Dynamic Model Selection**: Auto-populated from configured providers
+- **Background Removal**: Automatic transparency for sprites/icons
+- **Asset Type Control**: Generate as texture, sprite-frame, normal-map, etc.
+- **Reproducible Results**: Seed-based generation for consistency
+- **Batch Operations**: Efficient bulk asset creation
+
+**AI-Optimized Workflow:**
+- **Template Enhancement**: Use existing assets as generation templates
+- **Prompt Engineering**: Negative prompts and guidance scale control
+- **Asset Integration**: Generated content automatically imported with proper metadata
+
+## Quick Start
+
+1. **Install & Enable**: Install the extension in Cocos Creator and enable it in Extension Manager
+2. **Start Server**: Open `Panel -> cocos-mcp -> MCP Server Control Panel` and click Start
+3. **Connect AI**: Point your AI assistant to `http://localhost:3000/mcp`
+4. **Start Creating**: Use natural language to build games, generate assets, and iterate rapidly
+
+### AI Image Generation Setup
+
+1. **Configure Providers**: Use the extension's AI Image Generation config panel
+2. **Add Models**: Configure available models for each provider through the UI
+3. **Test Connectivity**: Verify provider setup with the built-in test function
+4. **Generate Assets**: Use the `generate_image_asset` MCP tool
+
+#### Quick Start with Local Stable Diffusion
+
+1. Open the AI Image Generation config panel in Cocos Creator
+2. Add a new Stable Diffusion provider pointing to `http://localhost:7860`
+3. Configure your models through the UI
+4. Test the connection
+
+## Technical Implementation
+
+- **Transport**: Streamable HTTP transport with Express.js server
+- **Protocol**: JSON-RPC 2.0 compliance with proper error handling
+- **Session Management**: Stateful connections with CORS support
+- **Type Safety**: Full TypeScript implementation with Zod schemas for input validation
+- **Modular Architecture**: Each resource, tool, and completion implemented in separate files
 
 ## Architecture
 
@@ -34,7 +98,6 @@ The extension consists of several key components:
 
 1. **Extension Panel** (`source/panels/default/`): Vue3-based UI for controlling the MCP server
 2. **MCP Server Manager** (`source/mcp/server-manager.ts`): Manages the HTTP server and MCP transport
-3. **Resources** (`source/mcp/resources/`): Expose Cocos Creator data through database access
 4. **Tools** (`source/mcp/tools/`): Provide actions for modifying the project
 
 ## Development Environment
@@ -55,112 +118,11 @@ npm install
 npm run build
 ```
 
-## Usage
-
-1. Install the extension in Cocos Creator
-2. Enable the extension in the Extension Manager
-3. Open the MCP panel: `Panel -> cocos-mcp -> MCP Server Control Panel`
-4. Configure the server port (default: 3000)
-5. Start the MCP server
-6. Connect MCP clients to `http://localhost:{port}/mcp`
-
-### AI Image Generation Setup
-
-1. **Configure Providers**: Use the extension's AI Image Generation config panel
-2. **Add Models**: Configure available models for each provider through the UI
-3. **Test Connectivity**: Verify provider setup with the built-in test function
-4. **Generate Assets**: Use the `generate_image_asset` MCP tool
-
-#### Quick Start with Local Stable Diffusion
-
-1. Open the AI Image Generation config panel in Cocos Creator
-2. Add a new Stable Diffusion provider pointing to `http://localhost:7860`
-3. Configure your models through the UI
-4. Test the connection
-
-Then generate assets via MCP:
-```javascript
-{
-  "prompt": "A fantasy sword with blue glowing runes",
-  "destination": "db://assets/weapons/magic-sword.png",
-  "assetType": "sprite-frame",
-  "model": "your-configured-model",
-  "provider": "your-provider-id"
-}
-```
-
-See the [AI Image Generation Guide](docs/ai-image-generation-guide.md) for complete documentation.
-
-## Available Resources
-
-- `db://{path}` - Universal access to Cocos Creator database with asset information
-
-## Available Tools
-
-### **Inspection & Hierarchy**
-- `inspect_node_hierarchy` - Returns node hierarchy with names, UUIDs, components, and children
-- `inspect_components_properties` - Returns properties of components: names, paths, types, values, enums
-
-### **Asset Management**
-- `get_available_asset_types` - Get all available asset types in the project
-- `create_asset_from_template` - Creates asset by copying a template to destination folder
-- `generate_image_asset` - Generates image from SVG or emoji and creates an asset of selected type
-- `operate_asset` - Copies, moves, or deletes assets by path
-
-### **Scene & Prefab Operations**
-- `open_scene` - Opens a scene by asset UUID or path
-- `save_current_scene_or_prefab` - Saves the currently opened scene or prefab
-- `open_prefab` - Open a prefab for editing by asset UUID or URL
-- `close_prefab` - Closes the current prefab, with optional save
-
-### **Node Management**
-- `create_nodes` - Creates nodes using type, name, components, and transform. Supports prefabs
-- `set_nodes_properties` - Updates properties of nodes: name, transform, mobility, visibility, layer
-- `operate_nodes` - Removes, duplicates, or changes parent of multiple nodes
-
-### **Component Management**
-- `get_available_component_types` - Returns all available component types in the project
-- `add_components_to_nodes` - Adds components to multiple nodes
-- `remove_components` - Removes components by their UUIDs
-- `set_components_properties` - Sets properties on components using path, type, and value
-
-### **Prefab Operations**
-- `create_prefab_from_node` - Creates prefab asset from an existing node
-- `node_linked_prefabs_operations` - Performs prefab-related actions: edit, unwrap, locate, reset, update
-
-### **Material & Project Settings**
-- `set_materials_properties` - Updates properties of materials: texture, color, effect, etc. (Note: Internal materials are protected)
-- `operate_project_settings` - Optionally set project settings and get current values
-
-### **File Operations**
-- `operate_scripts_and_text` - Tool for agents who can't work with project files directly. Performs operations like reading file content (with optional line range), writing content to files (with optional line insertion), searching for patterns, and getting file information. Supports filtering and common text file operations.
-
-## Technical Implementation
-
-- **Transport**: Streamable HTTP transport with Express.js server
-- **Protocol**: JSON-RPC 2.0 compliance with proper error handling
-- **Session Management**: Stateful connections with CORS support
-- **Type Safety**: Full TypeScript implementation with Zod schemas for input validation
-- **Modular Architecture**: Each resource, tool, and completion implemented in separate files
-
 ## Development
-
-### Adding New Resources
-1. Create new file in `source/mcp/resources/`
-2. Implement using `server.registerResource()` 
-3. Export registration function
-4. Add import and call in `server-manager.ts`
 
 ### Adding New Tools
 1. Create new file in `source/mcp/tools/`
 2. Implement using `server.registerTool()` with Zod schema
-3. Export registration function
-4. Add import and call in `server-manager.ts`
-
-### Adding New Completions
-Note: Completions are not currently implemented in this version, but can be added by:
-1. Create new file in `source/mcp/completions/`
-2. Implement completion logic
 3. Export registration function
 4. Add import and call in `server-manager.ts`
 
