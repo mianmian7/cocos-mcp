@@ -184,17 +184,15 @@ export function registerOperatePrefabAssetsTool(server: McpServer): void {
       errors.push(`Error verifying node: ${nodeError instanceof Error ? nodeError.message : String(nodeError)}`);
     }
 
-    let note: string = '';
-
     if (prefabUuid) {
       const encodedUuid = McpServerManager.encodeUuid(prefabUuid);
-      note += `Prefab from node (UUID: '${nodeUuid}') created, prefab UUID: ${encodedUuid}\n`;
+      notes.push(`Prefab from node (UUID: '${nodeUuid}') created, prefab UUID: ${encodedUuid}\n`);
     } else {
       errors.push(`Failed to create prefab from node '${nodeUuid}' at path '${assetPath}'`);
     }
 
     if (linkedNodeUuid) {
-      note += `Original node has new UUID: ${McpServerManager.encodeUuid(linkedNodeUuid)}`;
+      notes.push(`Original node has new UUID: ${McpServerManager.encodeUuid(linkedNodeUuid)}`);
     }
   };
 
