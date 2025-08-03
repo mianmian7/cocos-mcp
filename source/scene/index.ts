@@ -3,25 +3,38 @@ import { get } from 'http';
 import { join } from 'path';
 module.paths.push(join(Editor.App.path, 'node_modules'));
 
+const MAX_LOGS = 500;
 const logs: Array<string> = new Array<string>();
+const allLogs: Array<string> = new Array<string>();
+
+function addToLogs(message: string) {
+    // Add to temporary logs (cleared on each capture)
+    logs.push(message);
+    
+    // Add to persistent logs with circular buffer
+    allLogs.push(message);
+    if (allLogs.length > MAX_LOGS) {
+        allLogs.shift(); // Remove oldest log
+    }
+}
 
 export function load() {
     console.log = ((log) => {
         return (...args: any[]) => {
             log.apply(console, args);
-            logs.push("LOG: " + args.join(','));
+            addToLogs("LOG: " + args.join(','));
         };
     })(console.log);
     console.error = ((error) => {
         return (...args: any[]) => {
             error.apply(console, args);
-            logs.push("ERROR: " + args.join(','));
+            addToLogs("ERROR: " + args.join(','));
         };
     })(console.error);
     console.warn = ((warn) => {
         return (...args: any[]) => {
             warn.apply(console, args);
-            logs.push("WARN: " + args.join(','));
+            addToLogs("WARN: " + args.join(','));
         };
     })(console.warn);
 };
@@ -100,6 +113,14 @@ export const methods: Record<string, (...args: any[]) => any> = {
 
     getCapturedSceneLogs() {
         return logs;
+    },
+
+    getLastSceneLogs(count?: number) {
+        const requestedCount = count && count > 0 ? Math.min(count, MAX_LOGS) : MAX_LOGS;
+        if (allLogs.length <= requestedCount) {
+            return allLogs.slice(); // Return copy of all logs
+        }
+        return allLogs.slice(-requestedCount); // Return last N logs
     },
 
     async createPrefabFromNode(nodeUuid: string, path: string) {
