@@ -32,7 +32,7 @@ export function registerCreateNodesTool(server: McpServer): void {
     "2D/Sprite": { url: "db://internal/default_prefab/ui/Sprite.prefab", requireCanvas: true },
     "2D/SpriteSplash": { url: "db://internal/default_prefab/ui/SpriteSplash.prefab", requireCanvas: true },
     "2D/TiledMap": { url: "db://internal/default_prefab/ui/TiledMap.prefab", requireCanvas: true },
-    "UI/Button": { url: "db://internal/default_prefab/ui/Button.prefab", requireCanvas: true },
+    "UI/Button (with Label)": { url: "db://internal/default_prefab/ui/Button.prefab", requireCanvas: true },
     "UI/Canvas": { url: "db://internal/default_prefab/ui/Canvas.prefab", requireCanvas: false },
     "UI/EditBox": { url: "db://internal/default_prefab/ui/EditBox.prefab", requireCanvas: true },
     "UI/Layout": { url: "db://internal/default_prefab/ui/Layout.prefab", requireCanvas: true },
@@ -70,7 +70,7 @@ export function registerCreateNodesTool(server: McpServer): void {
     "create_nodes",
     {
       title: "Create Multiple Nodes",
-      description: "Creates multiple nodes with types, components, and properties. Returns component UUIDs.",
+      description: "Creates multiple nodes with types, components, and properties. Returns component UUIDs. 2D and UI nodes should be placed under Canvas, will be created if not present.",
       inputSchema: {
         nodes: z.array(z.object({
           type: z.enum(nodeTypeValues as [string, ...string[]]),
