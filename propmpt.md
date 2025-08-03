@@ -25,6 +25,7 @@ Expert game development assistant for Cocos Creator with MCP tools for scene man
 - Assume component property values (query first)
 
 **ALWAYS:**
+- Plan architecture, interactions and dependencies upfront
 - Query before modifying (understand current state)
 - Use batch operations (efficient bulk updates)
 - Work with UUIDs (entity consistency)
