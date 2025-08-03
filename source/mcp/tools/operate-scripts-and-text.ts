@@ -242,10 +242,11 @@ async function readFile(urlOrUuid: string, startLine?: number, endLine?: number,
         success: true,
         data: {
           content: selectedLines.join('\n'),
-          lines: selectedLines,
           totalLines: lines.length,
           requestedRange: { startLine: startLine, endLine: end },
-          context: contextLines > 0 ? { before: contextBefore, after: contextAfter } : undefined,
+          ...(contextLines > 0 && { 
+            context: { before: contextBefore, after: contextAfter } 
+          }),
           assetUrl: resolveResult.url
         }
       };
@@ -255,7 +256,6 @@ async function readFile(urlOrUuid: string, startLine?: number, endLine?: number,
       success: true,
       data: {
         content: fullContent,
-        lines: lines,
         totalLines: lines.length,
         assetUrl: resolveResult.url
       }
@@ -314,7 +314,8 @@ async function writeFile(
       
       try {
         await Editor.Message.request('asset-db', 'create-asset', resolveResult.url, content);
-        
+        await Editor.Message.request('asset-db', 'refresh-asset', resolveResult.url);
+
         // Check for new components in created TypeScript files
         const detectedComponents = targetUrl.includes('.ts') ? extractComponentNames(content) : [];
         const newComponents = await getNewComponentsOnly(detectedComponents);
@@ -505,8 +506,8 @@ async function replaceInFile(
     
     const replacements: Array<{
       line: number;
-      originalContent: string;
-      newContent: string;
+      originalContent?: string;
+      newContent?: string;
       position: { start: number; end: number };
     }> = [];
     
@@ -542,17 +543,14 @@ async function replaceInFile(
           matchCount = 1;
         }
         
-        // Calculate line numbers for matches
+        // Calculate line numbers for matches (exclude content already known to AI)
         globalMatches.slice(0, matchCount).forEach((match) => {
           const beforeMatch = content.substring(0, match.index);
           const lineNumber = beforeMatch.split('\n').length;
-          const matchedText = match[0];
           
           replacements.push({
             line: lineNumber,
-            originalContent: matchedText,
-            newContent: replaceText,
-            position: { start: match.index, end: match.index + matchedText.length }
+            position: { start: match.index, end: match.index + match[0].length }
           });
         });
       }
@@ -581,13 +579,10 @@ async function replaceInFile(
           newContent = content.replace(searchPattern, replaceText);
           matchCount = allMatches.length;
           
-          // Track detailed replacement info
-          allMatches.forEach(({ match, lineNumber, lineContent }) => {
-            const newLineContent = lineContent.replace(searchPattern, replaceText);
+          // Track minimal replacement info (exclude content already known to AI)
+          allMatches.forEach(({ match, lineNumber }) => {
             replacements.push({
               line: lineNumber,
-              originalContent: lineContent,
-              newContent: newLineContent,
               position: { start: match.index, end: match.index + match[0].length }
             });
           });
@@ -601,8 +596,6 @@ async function replaceInFile(
           const newLineContent = firstMatch.lineContent.replace(firstMatchRegex, replaceText);
           replacements.push({
             line: firstMatch.lineNumber,
-            originalContent: firstMatch.lineContent,
-            newContent: newLineContent,
             position: { start: firstMatch.match.index, end: firstMatch.match.index + firstMatch.match[0].length }
           });
         }
@@ -621,12 +614,9 @@ async function replaceInFile(
     return {
       success: true,
       data: {
-        replacements,
-        totalMatches: replacements.length,
         replacementsMade: matchCount,
-        searchPattern: searchText,
-        replacePattern: replaceText,
-        options,
+        totalMatches: replacements.length,
+        matchedLines: replacements.map(r => r.line),
         assetUrl: resolveResult.url,
         ...(newComponents.length > 0 && { newComponentsAvailable: newComponents })
       }
@@ -751,8 +741,6 @@ async function searchFile(
       data: {
         matches,
         totalMatches: matches.length,
-        pattern,
-        options,
         assetUrl: resolveResult.url
       }
     };
@@ -820,9 +808,9 @@ export function registerOperateScriptsAndTextTool(server: McpServer): void {
     "operate_scripts_and_text",
     {
       title: "Advanced File Operations",
-      description: "Tool for comprehensive file operations including reading, writing, searching, and replacing text with precise control. Supports asset UUIDs and db:// URLs only.",
+      description: "File operations: read, write, search, replace text.",
       inputSchema: {
-        operation: z.enum(["read", "write", "search", "replace", "info"]).describe("Operation: 'read' for file content, 'write' for file creation/modification, 'search' for pattern finding, 'replace' for text replacement, 'info' for file metadata"),
+        operation: z.enum(["read", "write", "search", "replace", "info"]).describe("File operation type"),
         urlOrUuid: z.string().describe("Asset UUID or db:// format URL"),
         
         // Read operation parameters
@@ -932,18 +920,16 @@ export function registerOperateScriptsAndTextTool(server: McpServer): void {
           result.logs = capturedLogs;
         }
         
-        // Return compact JSON response
+        // Return compact response (exclude parameters AI already knows)
         return {
           content: [{
             type: "text",
             text: JSON.stringify({
-              operation,
-              urlOrUuid,
               success: result.success,
-              data: result.data,
-              error: result.error,
-              logs: result.logs
-            }, null, 2)
+              ...(result.data && { data: result.data }),
+              ...(result.error && { error: result.error }),
+              ...(result.logs && result.logs.length > 0 && { logs: result.logs })
+            })
           }]
         };
         
@@ -951,17 +937,15 @@ export function registerOperateScriptsAndTextTool(server: McpServer): void {
         const capturedLogs = await Editor.Message.request('scene', 'execute-scene-script', { name: packageJSON.name, method: 'getCapturedSceneLogs', args: [] });
         
         const errorResult = {
-          operation,
-          urlOrUuid,
           success: false,
           error: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
-          logs: capturedLogs && capturedLogs.length > 0 ? capturedLogs : undefined
+          ...(capturedLogs && capturedLogs.length > 0 && { logs: capturedLogs })
         };
         
         return {
           content: [{
             type: "text",
-            text: JSON.stringify(errorResult, null, 2)
+            text: JSON.stringify(errorResult)
           }]
         };
       }

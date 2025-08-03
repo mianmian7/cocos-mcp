@@ -8,7 +8,7 @@ export function registerModifyComponentsTool(server: McpServer): void {
     "modify_components",
     {
       title: "Modify Component Properties",
-      description: "Updates component properties and removes components using UUID-based targeting. Safe for nodes with multiple components of the same type.",
+      description: "Updates/removes components using UUID targeting. Safe for nodes with multiple same-type components.",
       inputSchema: {
         components: z.array(z.object({
           uuid: z.string().describe("Required: specific component UUID"),

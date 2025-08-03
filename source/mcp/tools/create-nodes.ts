@@ -70,23 +70,23 @@ export function registerCreateNodesTool(server: McpServer): void {
     "create_nodes",
     {
       title: "Create Multiple Nodes",
-      description: "Creates multiple nodes with specified types, components, and properties. Returns all component UUIDs for later configuration.",
+      description: "Creates multiple nodes with types, components, and properties. Returns component UUIDs.",
       inputSchema: {
         nodes: z.array(z.object({
           type: z.enum(nodeTypeValues as [string, ...string[]]),
           name: z.string().default("Node"),
-          components: z.array(z.string()).default([]).describe("Array of component types to add"),
+          components: z.array(z.string()).default([]).describe("Component types to add"),
           // Flat properties for consistency with component property paths
           position: z.object({ x: z.number(), y: z.number(), z: z.number() }).optional(),
           eulerAngles: z.object({ x: z.number(), y: z.number(), z: z.number() }).optional(),
           scale: z.object({ x: z.number(), y: z.number(), z: z.number() }).optional(),
-          prefabUuid: z.string().describe("Prefab UUID (required if type is Prefab)").optional(),
-          enabled: z.boolean().default(true).describe("Enabled in hierarchy"),
-          layer: z.number().describe("Bitmask of layer").optional(),
+          prefabUuid: z.string().describe("Prefab UUID (required for Prefab type)").optional(),
+          enabled: z.boolean().default(true).describe("Enabled state"),
+          layer: z.number().describe("Layer bitmask").optional(),
           mobility: z.enum(mobilityValues).optional(),
-          siblingIndex: z.number().int().describe("Sibling index in parent node").optional()
+          siblingIndex: z.number().int().describe("Position in parent").optional()
         })),
-        parentUuid: z.string().describe("Parent node UUID (scene root if not set)").optional()
+        parentUuid: z.string().describe("Parent UUID (defaults to scene root)").optional()
       }
     },
     async (args) => {

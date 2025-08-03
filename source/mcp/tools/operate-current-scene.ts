@@ -9,7 +9,7 @@ export function registerOperateCurrentSceneTool(server: McpServer): void {
     "operate_current_scene",
     {
       title: "Operations with currently opened scene",
-      description: "Open, save scene, inspect hierarchy, get or set scene properties",
+      description: "Scene operations: open, save, inspect, get/set properties",
       inputSchema: {
         operation: z.enum(["open", "save", "inspect-hierarchy", "get-properties", "set-properties"]),
         sceneToOpenUrlOrUuid: z.string().describe("UUID or URL to open (for 'open' operation)").optional(),

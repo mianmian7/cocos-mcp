@@ -8,7 +8,7 @@ export function registerOperatePrefabAssetsTool(server: McpServer): void {
     "operate_prefab_assets",
     {
       title: "Create, Open or Close Prefabs",
-      description: "To create prefab assets from nodes, open for editing or close prefab editing",
+      description: "Prefab operations: create, edit, save, close",
       inputSchema: {
         operation: z.enum(['batch_create', 'open_for_editing', 'save_and_close', 'close_without_saving']),
         assetToOpenUrlOrUuid: z.string().optional().describe("Asset URL or UUID to open for editing (e.g., 'db://assets/MyPrefab.prefab' or UUID)"),
