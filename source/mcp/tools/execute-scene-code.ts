@@ -157,14 +157,14 @@ export function registerExecuteSceneCodeTool(server: McpServer): void {
     "execute_scene_code",
     {
       title: "Execute Code in Scene Context",
-      description: "Execute arbitrary TypeScript/JavaScript code in the Cocos Creator scene context. This tool allows running custom code to interact with the scene, nodes, components, and Cocos Creator APIs. Use with caution as it can modify the scene state.",
+      description: "Execute TypeScript/JavaScript code in Cocos Creator scene context. Can modify scene state.",
       inputSchema: {
         code: z.string(),
-        returnResult: z.boolean().optional().default(false).describe("Whether to capture and return the result of the code execution"),
-        timeout: z.number().optional().default(10000).describe("Execution timeout in milliseconds (default: 10 seconds)"),
-        captureConsole: z.boolean().optional().default(true).describe("Whether to capture console output during execution"),
-        skipValidation: z.boolean().optional().default(false).describe("Skip basic safety validation (use with extreme caution)"),
-        showApiDocs: z.boolean().optional().default(false).describe("Include Cocos Creator API documentation in the response")
+        returnResult: z.boolean().optional().default(false).describe("Capture execution result"),
+        timeout: z.number().optional().default(10000).describe("Timeout in milliseconds"),
+        captureConsole: z.boolean().optional().default(true).describe("Capture console output"),
+        skipValidation: z.boolean().optional().default(false).describe("Skip safety validation"),
+        showApiDocs: z.boolean().optional().default(false).describe("Include API docs")
       }
     },
     async ({ 

@@ -110,22 +110,22 @@ export function registerOperateAssetsTool(server: McpServer): void {
     "operate_assets",
     {
       title: "Operate Assets",
-      description: "Creates, copies, moves, deletes assets, or gets/sets asset properties in batch operations. Supports property inspection and modification for various asset types",
+      description: "Batch asset operations: create, copy, move, delete, get/set properties.",
       inputSchema: {
         operation: z.enum(["create", "copy", "delete", "move", "get-properties", "set-properties"]),
         operationOptions: z.array(z.object({
-          originalAssetPath: z.string().describe("Original asset path (required for copy/delete/move/get-properties/set-properties operations)").optional(),
-          destinationPath: z.string().describe("Destination path (required for create/copy/move operations)").optional(),
-          newAssetType: z.enum(Object.keys(assetTemplateUrls) as [string, ...string[]]).describe("Asset type for create operation").optional(),
-          overwrite: z.boolean().describe("Whether to overwrite if destination exists").optional().default(false),
-          rename: z.boolean().describe("Whether to auto-rename if conflict occurs").optional().default(false),
+          originalAssetPath: z.string().describe("Source path (for copy/delete/move/get/set operations)").optional(),
+          destinationPath: z.string().describe("Target path (for create/copy/move operations)").optional(),
+          newAssetType: z.enum(Object.keys(assetTemplateUrls) as [string, ...string[]]).describe("Asset type for create").optional(),
+          overwrite: z.boolean().describe("Overwrite if exists").optional().default(false),
+          rename: z.boolean().describe("Auto-rename on conflict").optional().default(false),
           properties: z.array(z.object({
             propertyPath: z.string(),
             propertyType: z.string(),
             propertyValue: z.any()
-          })).describe("Properties to set (required for set-properties operation)").optional(),
-          includeTooltips: z.boolean().describe("Whether to include tooltips in property descriptions").optional().default(false),
-          useAdvancedInspection: z.boolean().describe("Whether to use advanced inspection (if not - filters properties to most commonly used ones)").optional().default(false)
+          })).describe("Properties for set operation").optional(),
+          includeTooltips: z.boolean().describe("Include property tooltips").optional().default(false),
+          useAdvancedInspection: z.boolean().describe("Advanced property inspection").optional().default(false)
         }))
       }
     },
@@ -188,6 +188,7 @@ export function registerOperateAssetsTool(server: McpServer): void {
                         
                         // Create asset with processed content
                         const createResult = await Editor.Message.request('asset-db', 'create-asset', actualPath, processedContent);
+                        await Editor.Message.request('asset-db', 'refresh-asset', actualPath);
                         if (createResult) {
                           result = { 
                             operation: "create", 
@@ -206,12 +207,14 @@ export function registerOperateAssetsTool(server: McpServer): void {
                       } else {
                         // Fallback to copy if template can't be read
                         const copyResult = await Editor.Message.request('asset-db', 'copy-asset', template.url, finalPath, { overwrite, rename });
+                        await Editor.Message.request('asset-db', 'refresh-asset', finalPath);
                         if (copyResult) {
                           result = { operation: "create", path: finalPath, uuid: McpServerManager.encodeUuid(copyResult.uuid) };
                         } else {
                           result = { operation: "create", path: finalPath, success: false };
                         }
                       }
+
                     } catch (error) {
                       errors.push(`Error processing TypeScript template: ${error instanceof Error ? error.message : String(error)}`);
                       continue;

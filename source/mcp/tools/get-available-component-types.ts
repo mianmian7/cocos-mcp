@@ -8,7 +8,7 @@ export function registerGetAvailableComponentTypesTool(server: McpServer): void 
     "get_available_component_types",
     {
       title: "Get Available Component Types",
-      description: "Returns all available component types in the project",
+      description: "Get available component types",
       inputSchema: {
         // No input parameters needed
       }

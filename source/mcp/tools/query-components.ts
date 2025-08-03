@@ -8,7 +8,7 @@ export function registerQueryComponentsTool(server: McpServer): void {
     "query_components",
     {
       title: "Query Component Properties",
-      description: "Discovers component properties for the discovery-first workflow. Returns detailed property information including types, current values, and tooltips for AI agents to learn what properties are available.",
+      description: "Returns component property details with types, values, and tooltips.",
       inputSchema: {
         componentUuids: z.array(z.string()).describe("Array of component UUIDs to query"),
         includeTooltips: z.boolean().default(false).describe("Get property descriptions/tooltips"),

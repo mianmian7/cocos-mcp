@@ -8,7 +8,7 @@ export function registerGetAssetsByTypeTool(server: McpServer): void {
     "get_assets_by_type",
     {
       title: "Get Assets By Type",
-      description: "Returns assets for a given asset type",
+      description: "Get assets by type",
       inputSchema: {
         ccType: z.string().describe("Asset ccType to search for (e.g., 'cc.Prefab', 'cc.Material', 'cc.Texture2D')"),
         lookForTemplates: z.boolean().optional().default(false).describe("Look for templates in db://internal")

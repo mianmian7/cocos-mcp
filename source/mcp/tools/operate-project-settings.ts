@@ -8,7 +8,7 @@ export function registerOperateProjectSettingsTool(server: McpServer): void {
     "operate_project_settings",
     {
       title: "Operate Project Settings",
-      description: "Optionally set project settings and get current values",
+      description: "Get/set project settings",
       inputSchema: {
         designResolution: z.object({ 
           width: z.number().int(), 

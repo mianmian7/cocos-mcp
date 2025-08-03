@@ -8,13 +8,13 @@ export function registerQueryNodesTool(server: McpServer): void {
     "query_nodes",
     {
       title: "Query Node Hierarchy",
-      description: "Inspects node hierarchy with flexible detail levels. Supports granular control over what information to include and depth limiting for performance.",
+      description: "Inspects node hierarchy with configurable detail levels and depth limits.",
       inputSchema: {
-        nodeUuid: z.string().optional().describe("Optional: specific node UUID (defaults to scene root)"),
-        includeProperties: z.boolean().default(false).describe("Include node transform/basic properties"),
+        nodeUuid: z.string().optional().describe("Node UUID (defaults to scene root)"),
+        includeProperties: z.boolean().default(false).describe("Include transform properties"),
         includeComponents: z.boolean().default(false).describe("Include component list"),
-        includeComponentProperties: z.boolean().default(false).describe("Include full component property details"),
-        maxDepth: z.number().optional().describe("Limit hierarchy depth (default: unlimited)"),
+        includeComponentProperties: z.boolean().default(false).describe("Include component details"),
+        maxDepth: z.number().optional().describe("Hierarchy depth limit"),
       }
     },
     async (args) => {
