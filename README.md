@@ -2,6 +2,8 @@
 
 A Cocos Creator extension that implements a Model Context Protocol (MCP) server with Streamable HTTP transport. This extension runs **directly within Cocos Creator** - no external tools, bridges, or setup required. Simply install the extension and start connecting AI assistants to your game development workflow.
 
+[**Example of the game created fully with AI agent prompts only with this extension**](https://ro-ro.itch.io/ai-breakout)
+
 ## Key Advantages
 
 ### 🚀 **Zero-Setup Integration**
