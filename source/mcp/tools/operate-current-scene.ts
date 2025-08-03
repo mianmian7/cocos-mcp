@@ -3,13 +3,15 @@ import { z } from "zod";
 import packageJSON from '../../../package.json';
 import { McpServerManager } from "../server-manager";
 import { getComponentInfo, setProperties, PropertySetSpec } from "../utils";
+import * as fs from 'fs';
+import * as path from 'path';
 
 export function registerOperateCurrentSceneTool(server: McpServer): void {
   server.registerTool(
     "operate_current_scene",
     {
       title: "Operations with currently opened scene",
-      description: "Scene operations: open, save, inspect, get/set properties, retrieve logs",
+      description: "Scene operations: open, save, inspect, get/set properties, retrieve logs. Log retrieval prioritizes project log file over scene buffer.",
       inputSchema: {
         operation: z.enum(["open", "save", "inspect-hierarchy", "get-properties", "set-properties", "get-last-logs"]),
         sceneToOpenUrlOrUuid: z.string().describe("UUID or URL to open (for 'open' operation)").optional(),
@@ -19,7 +21,7 @@ export function registerOperateCurrentSceneTool(server: McpServer): void {
           propertyType: z.string().describe("Property type (e.g., 'cc.Color', 'String', 'Number')"),
           propertyValue: z.unknown().describe("Property value to set")
         })).describe("Properties to set (for 'set-properties' operation)").default([]),
-        lastLogsCount: z.number().int().max(500).optional().describe("Number of last logs to retrieve (for 'get-last-logs')")
+        lastLogsCount: z.number().int().max(500).optional().describe("Number of last logs to retrieve (for 'get-last-logs' operation, max 500)")
       }
     },
     async ({ operation, sceneToOpenUrlOrUuid, includeTooltips, properties, lastLogsCount }) => {
@@ -227,11 +229,37 @@ export function registerOperateCurrentSceneTool(server: McpServer): void {
 
           case "get-last-logs": {
             try {
-              const lastLogs = await Editor.Message.request('scene', 'execute-scene-script', { 
-                name: packageJSON.name, 
-                method: 'getLastSceneLogs', 
-                args: [lastLogsCount] 
-              });
+              // First try to read from the project log file
+              let logs: string[] = [];
+              let source = "project-file";
+              
+              try {
+                // Get the project log file path
+                const logFilePath = path.join(Editor.Project.path, 'temp', 'logs', 'project.log');
+                
+                // Try to read the log file directly
+                if (fs.existsSync(logFilePath)) {
+                  const content = fs.readFileSync(logFilePath, 'utf8');
+                  const lines = content.split('\n').filter(line => line.trim());
+                  const requestedCount = lastLogsCount || 500;
+                  logs = lines.slice(-requestedCount);
+                  source = "project-file";
+                } else {
+                  throw new Error('Project log file not found');
+                }
+              } catch (projectLogError) {
+                // Fallback to existing scene logging
+                console.log(`Project log file not accessible, falling back to scene logs: ${projectLogError}`);
+                
+                const lastLogs = await Editor.Message.request('scene', 'execute-scene-script', { 
+                  name: packageJSON.name, 
+                  method: 'getLastSceneLogs', 
+                  args: [lastLogsCount] 
+                });
+                
+                logs = lastLogs || [];
+                source = "scene-buffer";
+              }
               
               return {
                 content: [{
@@ -239,8 +267,8 @@ export function registerOperateCurrentSceneTool(server: McpServer): void {
                   text: JSON.stringify({
                     operation: "get-last-logs",
                     success: true,
-                    logs: lastLogs || [],
-                    totalLogsRetrieved: lastLogs ? lastLogs.length : 0,
+                    logs: logs,
+                    totalLogsRetrieved: logs.length
                   }, null, 2)
                 }]
               };
