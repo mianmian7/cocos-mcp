@@ -43,7 +43,7 @@ export function registerGenerateImageAssetTool(server: McpServer, serverManagerI
         rename: z.boolean().describe("Whether to auto-rename if conflict occurs").optional().default(false),
         
         // AI Image Generation parameters (only used when prompt is provided)
-        model: z.enum(modelEnum as [string, ...string[]]).describe("AI model to use for generation"),
+        model: z.enum(modelEnum as [string, ...string[]]).describe("AI model to use for generation (required if prompt is provided)").optional().default(modelEnum[0]),
         steps: z.number().describe("Number of diffusion steps").optional().default(40),
         guidanceScale: z.number().describe("Guidance scale for generation").optional().default(7.5),
         seed: z.number().describe("Random seed for reproducible results").optional(),

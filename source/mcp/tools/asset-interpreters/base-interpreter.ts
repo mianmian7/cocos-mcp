@@ -80,6 +80,8 @@ export abstract class BaseAssetInterpreter implements IAssetInterpreter {
             // Save the meta after all properties are set
             if (results.some(r => r.success)) {
                 await Editor.Message.request('asset-db', 'save-asset-meta', assetInfo.uuid, JSON.stringify(meta));
+                // Refresh the asset to apply the changes
+                await Editor.Message.request('asset-db', 'refresh-asset', assetInfo.url);
             }
 
         } catch (error) {
