@@ -5,6 +5,9 @@ import express from 'express';
 import { createServer, Server as HttpServer } from 'http';
 import { randomUUID } from 'crypto';
 
+// Import SSE transport
+import { SseMcpServerTransport } from './sse-transport.js';
+
 // Import configuration
 import { McpServerConfig, DEFAULT_SERVER_CONFIG } from './config.js';
 import { ConfigStorage } from './config-storage.js';
@@ -44,6 +47,7 @@ export class McpServerManager {
   private config: McpServerConfig = { ...DEFAULT_SERVER_CONFIG };
   private isRunning: boolean = false;
   private transports: { [sessionId: string]: StreamableHTTPServerTransport } = {};
+  private sseTransports: { [sessionId: string]: SseMcpServerTransport } = {};
   private configStorage: ConfigStorage;
   private imageGenerationService: ImageGenerationService;
 
@@ -348,6 +352,100 @@ export class McpServerManager {
         }
       });
 
+      // Handle SSE transport endpoints - following the standard pattern
+      this.expressApp.get('/mcp-sse', async (req, res) => {
+        console.log('Received GET request to /mcp-sse (establishing SSE stream)');
+        try {
+          // Create new MCP server for this SSE connection
+          const server = this.createMcpServer();
+          
+          // Create SSE transport using the SDK's built-in class
+          // The POST endpoint should be different from the GET endpoint
+          const sseTransport = new SseMcpServerTransport('/mcp-sse-messages', res, {
+            onsessioninitialized: (sessionId) => {
+              this.sseTransports[sessionId] = sseTransport;
+              console.log(`SSE transport initialized with session ID: ${sessionId}`);
+            },
+            onsessionclosed: (sessionId) => {
+              delete this.sseTransports[sessionId];
+              console.log(`SSE transport closed for session ID: ${sessionId}`);
+            }
+          });
+
+          // Set up close handler
+          sseTransport.onclose = () => {
+            const sessionId = sseTransport.sessionId;
+            if (sessionId && this.sseTransports[sessionId]) {
+              delete this.sseTransports[sessionId];
+              console.log(`SSE transport closed for session ID: ${sessionId}`);
+            }
+          };
+
+          // Set up error handler
+          req.on('error', (error) => {
+            console.error('SSE connection error:', error);
+            sseTransport.close();
+          });
+
+          // Initialize the transport
+          await sseTransport.initialize();
+
+          // Connect the transport to the MCP server
+          await server.connect(sseTransport);
+          
+          console.log(`SSE transport established with session ID: ${sseTransport.sessionId}`);
+        } catch (error) {
+          console.error('Error establishing SSE transport:', error);
+          if (!res.headersSent) {
+            res.status(500).send('Error establishing SSE transport');
+          }
+        }
+      });
+
+      // Separate endpoint for SSE POST messages
+      this.expressApp.post('/mcp-sse-messages', async (req, res) => {
+        console.log('Received POST request to /mcp-sse-messages');
+        // Extract session ID from query parameter (as per SSE protocol)
+        const sessionId = req.query.sessionId as string;
+        
+        if (!sessionId) {
+          console.error('No session ID provided in request URL');
+          res.status(400).send('Missing sessionId parameter');
+          return;
+        }
+        
+        const sseTransport = this.sseTransports[sessionId];
+
+        if (sseTransport) {
+          try {
+            // Handle the POST request using the SSE transport
+            await sseTransport.handlePostMessage(req, res, req.body);
+          } catch (error) {
+            console.error('Error handling SSE POST request:', error);
+            if (!res.headersSent) {
+              res.status(500).json({
+                jsonrpc: '2.0',
+                error: {
+                  code: -32603,
+                  message: 'Internal server error',
+                },
+                id: null,
+              });
+            }
+          }
+        } else {
+          console.error(`No active SSE transport found for session ID: ${sessionId}`);
+          res.status(404).json({
+            jsonrpc: '2.0',
+            error: {
+              code: -32002,
+              message: 'Session not found. Please connect via GET /mcp-sse first.',
+            },
+            id: null,
+          });
+        }
+      });
+
       // Create and start HTTP server
       this.httpServer = createServer(this.expressApp);
       
@@ -371,6 +469,7 @@ export class McpServerManager {
       this.httpServer = null;
       this.expressApp = null;
       this.transports = {};
+      this.sseTransports = {};
       throw error;
     }
   }
@@ -381,7 +480,7 @@ export class McpServerManager {
     }
 
     try {
-      // Close all transports
+      // Close all chunked transports
       for (const transport of Object.values(this.transports)) {
         try {
           await transport.close();
@@ -390,6 +489,16 @@ export class McpServerManager {
         }
       }
       this.transports = {};
+
+      // Close all SSE transports
+      for (const sseTransport of Object.values(this.sseTransports)) {
+        try {
+          sseTransport.close();
+        } catch (error) {
+          console.error("Error closing SSE transport:", error);
+        }
+      }
+      this.sseTransports = {};
 
       // Close HTTP server
       if (this.httpServer) {
