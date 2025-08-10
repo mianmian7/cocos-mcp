@@ -382,8 +382,13 @@ export class McpServerManager {
           };
 
           // Set up error handler
-          req.on('error', (error) => {
-            console.error('SSE connection error:', error);
+          req.on('error', (error: any) => {
+            // Filter out common connection errors that are part of normal SSE lifecycle
+            if (error.code === 'ECONNRESET' || error.code === 'ECONNABORTED') {
+              console.log(`SSE connection closed by client (session ${sseTransport.sessionId}): ${error.code}`);
+            } else {
+              console.error('SSE connection error:', error);
+            }
             sseTransport.close();
           });
 

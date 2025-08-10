@@ -2,8 +2,8 @@
     "$schema": "./@types/schema/package/index.json",
     "package_version": 2,
     "name": "cocos-mcp",
-    "version": "1.0.1",
-    "author": "Roma Rogov",
+    "version": "1.0.2",
+    "author": "Roma Rogov, mianmian7",
     "editor": ">=3.8.6",
     "scripts": {
         "preinstall": "node ./scripts/preinstall.js",
