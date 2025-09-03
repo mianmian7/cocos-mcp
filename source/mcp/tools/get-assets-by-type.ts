@@ -11,10 +11,11 @@ export function registerGetAssetsByTypeTool(server: McpServer): void {
       description: "Get assets by type",
       inputSchema: {
         ccType: z.string().describe("Asset ccType to search for (e.g., 'cc.Prefab', 'cc.Material', 'cc.Texture2D')"),
-        lookForTemplates: z.boolean().optional().default(false).describe("Look for templates in db://internal")
+        lookForTemplates: z.boolean().optional().default(false).describe("Look for templates in db://internal"),
+        nameFilter: z.string().optional().describe("Optional substring to filter asset names")
       }
     },
-    async ({ ccType, lookForTemplates }) => {
+    async ({ ccType, lookForTemplates, nameFilter }) => {
       await Editor.Message.request('scene', 'execute-scene-script', { name: packageJSON.name, method: 'startCaptureSceneLogs', args: [] });
       try {
         const errors: string[] = [];
@@ -28,7 +29,7 @@ export function registerGetAssetsByTypeTool(server: McpServer): void {
 
           if (assetInfos && Array.isArray(assetInfos)) {
             assets = assetInfos
-              .filter((assetInfo: any) => assetInfo && assetInfo.url && (assetInfo.type == ccType || assetInfo.extends.includes(ccType)))
+              .filter((assetInfo: any) => assetInfo && assetInfo.url && (assetInfo.type == ccType || assetInfo.extends.includes(ccType)) && (!nameFilter || assetInfo.name.includes(nameFilter)))
               .map((assetInfo: any) => ({
                 name: assetInfo.name || 'Unknown',
                 url: assetInfo.url,
@@ -52,7 +53,7 @@ export function registerGetAssetsByTypeTool(server: McpServer): void {
         if (assets.length > 0) {
           result.assets = assets;
         } else {
-          result.errors = [ `No assets found for asset type '${ccType}'. Tip: Use 'get-available-asset-types' tool to see all available asset types.` ];
+          result.errors = [ `No assets found for asset type '${ccType + (nameFilter ? ` with name filter '${nameFilter}'` : '')}'. Tip: Use 'get-available-asset-types' tool to see all available asset types.` ];
         }
 
         if (errors.length > 0) {

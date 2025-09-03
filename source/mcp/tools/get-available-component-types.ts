@@ -10,10 +10,10 @@ export function registerGetAvailableComponentTypesTool(server: McpServer): void 
       title: "Get Available Component Types",
       description: "Get available component types",
       inputSchema: {
-        // No input parameters needed
+        nameFilter: z.string().optional().describe("Optional substring to filter component types")
       }
     },
-    async (args) => {
+    async ({ nameFilter }) => {
       await Editor.Message.request('scene', 'execute-scene-script', { name: packageJSON.name, method: 'startCaptureSceneLogs', args: [] });
       try {
         const errors: string[] = [];
@@ -30,6 +30,8 @@ export function registerGetAvailableComponentTypesTool(server: McpServer): void 
           errors.push(`Error querying component types: ${queryError instanceof Error ? queryError.message : String(queryError)}`);
         }
 
+        componentTypes = componentTypes.filter(type => !nameFilter || type.includes(nameFilter));
+
         // Build response message
         let message = '';
         
@@ -37,6 +39,9 @@ export function registerGetAvailableComponentTypesTool(server: McpServer): void 
           message = componentTypes.join(', ');
         } else {
           message = 'No component types found';
+          if (nameFilter) {
+            message += ` with name filter '${nameFilter}'`;
+          }
         }
 
         if (errors.length > 0) {
