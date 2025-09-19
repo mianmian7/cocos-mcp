@@ -3,7 +3,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import express from 'express';
 import { createServer, Server as HttpServer } from 'http';
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 
 // Import SSE transport
 import { SseMcpServerTransport } from './sse-transport.js';
@@ -251,7 +251,7 @@ export class McpServerManager {
       // Add CORS headers
       this.expressApp.use((req, res, next) => {
         res.header('Access-Control-Allow-Origin', '*');
-        res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
         res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, mcp-session-id');
         next();
       });
@@ -260,15 +260,12 @@ export class McpServerManager {
       this.expressApp.post('/mcp', async (req, res) => {
         const sessionId = req.headers['mcp-session-id'] as string | undefined;
         let transport: StreamableHTTPServerTransport;
-        let server: McpServer;
 
         if (sessionId && this.transports[sessionId]) {
           // Reuse existing transport
           transport = this.transports[sessionId];
-          server = this.server!; // Use the global server instance
         } else if (!sessionId && isInitializeRequest(req.body)) {
           // New initialization request
-          server = this.createMcpServer();
           transport = new StreamableHTTPServerTransport({
             sessionIdGenerator: () => randomUUID(),
             onsessioninitialized: (sessionId) => {
@@ -278,22 +275,20 @@ export class McpServerManager {
 
           // Clean up transport when closed
           transport.onclose = () => {
-            const sessionId = Object.keys(this.transports).find(
-              id => this.transports[id] === transport
-            );
-            if (sessionId) {
-              delete this.transports[sessionId];
+            if (transport.sessionId) {
+              delete this.transports[transport.sessionId];
             }
           };
 
+          const server = this.createMcpServer();
           await server.connect(transport);
         } else {
           // Invalid request - no session ID and not an initialize request
           res.status(400).json({
             jsonrpc: '2.0',
             error: {
-              code: -32600,
-              message: 'Invalid Request: Missing session ID or not an initialize request',
+              code: -32000,
+              message: 'Bad Request: No valid session ID provided',
             },
             id: null,
           });
@@ -317,40 +312,23 @@ export class McpServerManager {
         }
       });
 
-      // Handle GET requests for SSE notifications  
-      this.expressApp.get('/mcp', async (req, res) => {
-        const sessionId = req.headers['mcp-session-id'] as string;
-        const transport = this.transports[sessionId];
-        
-        if (transport) {
-          try {
-            // Note: handleSSE might not be available in current SDK version
-            // This is a placeholder for SSE support
-            res.status(501).json({
-              jsonrpc: '2.0',
-              error: {
-                code: -32001,
-                message: 'SSE not implemented',
-              },
-              id: null,
-            });
-          } catch (error) {
-            console.error('Error handling SSE request:', error);
-            if (!res.headersSent) {
-              res.status(500).end();
-            }
-          }
-        } else {
-          res.status(404).json({
-            jsonrpc: '2.0',
-            error: {
-              code: -32002,
-              message: 'Session not found',
-            },
-            id: null,
-          });
+      // Reusable handler for GET and DELETE requests
+      const handleSessionRequest = async (req: express.Request, res: express.Response) => {
+        const sessionId = req.headers['mcp-session-id'] as string | undefined;
+        if (!sessionId || !this.transports[sessionId]) {
+          res.status(400).send('Invalid or missing session ID');
+          return;
         }
-      });
+        
+        const transport = this.transports[sessionId];
+        await transport.handleRequest(req, res);
+      };
+
+      // Handle GET requests for server-to-client notifications via SSE
+      this.expressApp.get('/mcp', handleSessionRequest);
+
+      // Handle DELETE requests for session termination
+      this.expressApp.delete('/mcp', handleSessionRequest);
 
       // Handle SSE transport endpoints - following the standard pattern
       this.expressApp.get('/mcp-sse', async (req, res) => {
@@ -462,10 +440,7 @@ export class McpServerManager {
         });
       });
 
-      // Create a default server instance for server info
-      this.server = this.createMcpServer();
       this.isRunning = true;
-
       console.log(`MCP server started on port ${this.config.port}`);
     } catch (error) {
       this.isRunning = false;
