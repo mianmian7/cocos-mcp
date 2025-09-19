@@ -12,11 +12,11 @@ export function registerQueryComponentsTool(server: McpServer): void {
       inputSchema: {
         componentUuids: z.array(z.string()).describe("Array of component UUIDs to query"),
         includeTooltips: z.boolean().default(false).describe("Get property descriptions/tooltips"),
-        propertiesFilter: z.enum(["all", "commonly-used", "basic"]).default("all").describe("Filter properties by relevance")
+        hideInternalProps: z.boolean().default(false).describe("Filter out internal properties")
       }
     },
     async (args) => {
-      const { componentUuids, includeTooltips, propertiesFilter } = args;
+      const { componentUuids, includeTooltips, hideInternalProps } = args;
       const results: any[] = [];
       const errors: string[] = [];
 
@@ -39,13 +39,7 @@ export function registerQueryComponentsTool(server: McpServer): void {
             if (componentInfo.properties && Object.keys(componentInfo.properties).length > 0) {
               let propertyPaths = Object.keys(componentInfo.properties);
 
-              if (propertiesFilter === "basic") {
-                // Only include very basic properties
-                const basicProps = ["position", "rotation", "scale", "enabled", "active", "name"];
-                propertyPaths = propertyPaths.filter(prop => 
-                  basicProps.some(basic => prop.startsWith(basic))
-                );
-              } else if (propertiesFilter === "commonly-used") {
+              if (hideInternalProps) {
                 // Exclude internal/advanced properties
                 propertyPaths = propertyPaths.filter(prop => 
                   !prop.startsWith("_") && 
@@ -90,12 +84,6 @@ export function registerQueryComponentsTool(server: McpServer): void {
         const result = {
           operation: "query-components",
           components: results,
-          requestedOptions: {
-            includeTooltips,
-            propertiesFilter
-          },
-          successCount: results.length,
-          totalRequested: componentUuids.length,
           errors: errors.length > 0 ? errors : undefined
         };
 
@@ -109,9 +97,6 @@ export function registerQueryComponentsTool(server: McpServer): void {
       } catch (error) {
         const result = {
           operation: "query-components",
-          components: [],
-          successCount: 0,
-          totalRequested: componentUuids.length,
           errors: [`Global error: ${error instanceof Error ? error.message : String(error)}`]
         };
 

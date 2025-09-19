@@ -160,12 +160,6 @@ export function registerQueryNodesTool(server: McpServer): void {
         const result = {
           operation: "query-nodes",
           hierarchy,
-          requestedDetail: {
-            includeProperties,
-            includeComponents,
-            includeComponentProperties,
-            maxDepth
-          },
           errors: errors.length > 0 ? errors : undefined
         };
 

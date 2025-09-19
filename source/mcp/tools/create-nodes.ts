@@ -70,7 +70,7 @@ export function registerCreateNodesTool(server: McpServer): void {
     "create_nodes",
     {
       title: "Create Multiple Nodes",
-      description: "Creates multiple nodes with types, components, and properties. Returns component UUIDs. 2D and UI nodes should be placed under Canvas, will be created if not present.",
+      description: "Creates multiple nodes of specific types, with components and properties. Returns nodes and components UUIDs. 2D and UI nodes should be placed under Canvas, will be created if not present.",
       inputSchema: {
         nodes: z.array(z.object({
           type: z.enum(nodeTypeValues as [string, ...string[]]),
