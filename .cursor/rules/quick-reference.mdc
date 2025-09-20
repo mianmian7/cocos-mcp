@@ -1,0 +1,262 @@
+---
+alwaysApply: true
+description: 快速参考指南和最佳实践总结
+---
+
+# 快速参考指南
+
+## 🚀 快速开始
+
+### 安装和构建
+```bash
+npm install          # 安装依赖
+npm run build        # 编译TypeScript
+```
+
+### 启动扩展
+1. 在Cocos Creator中启用扩展
+2. 打开 `Panel -> cocos-mcp -> MCP Server Control Panel`
+3. 点击"Start"启动MCP服务器
+4. AI助手连接到 `http://localhost:3000/mcp`
+
+## 📁 核心文件位置
+
+### 主要入口文件
+- `source/main.ts` - 扩展生命周期和方法定义
+- `source/mcp/server-manager.ts` - MCP服务器管理器
+- `source/mcp/config.ts` - 配置定义和默认值
+
+### 工具文件
+- `source/mcp/tools/create-nodes.ts` - 节点创建工具
+- `source/mcp/tools/modify-nodes.ts` - 节点修改工具
+- `source/mcp/tools/generate-image-asset.ts` - AI图像生成工具
+- `source/mcp/tools/operate-assets.ts` - 资源操作工具
+
+### UI面板
+- `source/panels/default/` - MCP服务器控制面板
+- `source/panels/ai-config/` - AI配置面板
+- `source/panels/image-generator/` - 图像生成器面板
+
+## 🛠️ 常用开发命令
+
+### API调用
+```typescript
+// 查询节点信息
+const nodeInfo = await Editor.Message.request('scene', 'query-node', {
+  uuid: nodeUuid
+});
+
+// 创建节点
+const result = await Editor.Message.request('scene', 'create-node', {
+  parent: parentUuid,
+  name: 'New Node'
+});
+
+// 设置节点属性
+await Editor.Message.request('scene', 'set-property', {
+  uuid: nodeUuid,
+  path: 'position',
+  dump: { value: { x: 0, y: 0, z: 0 }, type: 'cc.Vec3' }
+});
+```
+
+### MCP工具注册
+```typescript
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
+
+export function registerToolNameTool(server: McpServer): void {
+  server.registerTool(
+    "tool_name",
+    {
+      title: "工具标题",
+      description: "工具描述",
+      inputSchema: {
+        parameter: z.string().describe("参数描述")
+      }
+    },
+    async (args) => {
+      // 工具实现
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify(result)
+        }]
+      };
+    }
+  );
+}
+```
+
+### UUID处理
+```typescript
+import { McpServerManager } from "../server-manager";
+
+// 编码UUID (用于输出)
+const encodedUuid = McpServerManager.encodeUuid(rawUuid);
+
+// 解码UUID (用于API调用)
+const rawUuid = McpServerManager.decodeUuid(encodedUuid);
+```
+
+## 🎯 最佳实践
+
+### 1. 错误处理
+```typescript
+try {
+  const result = await operation();
+  return {
+    content: [{
+      type: "text",
+      text: JSON.stringify(result)
+    }]
+  };
+} catch (error) {
+  return {
+    content: [{
+      type: "text",
+      text: JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      })
+    }]
+  };
+}
+```
+
+### 2. 输入验证
+```typescript
+inputSchema: {
+  nodeUuid: z.string().describe("节点UUID"),
+  position: z.object({
+    x: z.number(),
+    y: z.number(),
+    z: z.number()
+  }).optional().describe("节点位置"),
+  components: z.array(z.string()).default([]).describe("组件类型列表")
+}
+```
+
+### 3. 异步操作
+```typescript
+// 批量操作
+const results = await Promise.all(
+  nodes.map(node => processNode(node))
+);
+
+// 错误处理
+const results = await Promise.allSettled(
+  operations.map(op => executeOperation(op))
+);
+```
+
+## 🔧 常用配置
+
+### 默认服务器配置
+```typescript
+{
+  port: 3000,
+  name: "cocos-mcp-server",
+  version: "1.0.1",
+  tools: {
+    // 核心工具默认启用
+    createNodes: true,
+    modifyNodes: true,
+    queryNodes: true,
+    // 安全敏感工具默认禁用
+    operateScriptsAndText: false,
+    executeSceneCode: false
+  }
+}
+```
+
+### 图像生成配置
+```typescript
+{
+  enabled: true,
+  providers: [
+    {
+      id: "local-sd",
+      type: "stable-diffusion",
+      config: {
+        baseUrl: "http://localhost:7860",
+        timeout: 30000
+      }
+    }
+  ]
+}
+```
+
+## 📊 调试技巧
+
+### 1. 启用详细日志
+```typescript
+// 开发环境日志
+if (process.env.NODE_ENV === 'development') {
+  console.log('详细调试信息:', { args, result });
+}
+```
+
+### 2. 性能监控
+```typescript
+console.time('operation-name');
+const result = await operation();
+console.timeEnd('operation-name');
+```
+
+### 3. 内存使用检查
+```typescript
+const memUsage = process.memoryUsage();
+console.log('Memory usage:', {
+  rss: `${Math.round(memUsage.rss / 1024 / 1024)}MB`,
+  heapUsed: `${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`
+});
+```
+
+## 🔒 安全注意事项
+
+### 1. 工具权限
+- 文件系统操作工具需要谨慎启用
+- 代码执行工具默认禁用
+- 所有输入都需要验证
+
+### 2. 配置安全
+- API密钥等敏感信息需要加密存储
+- 定期检查配置完整性
+- 备份重要配置
+
+### 3. 操作确认
+```typescript
+// 对于危险操作，添加确认机制
+if (await confirmDangerousOperation()) {
+  await executeDangerousOperation();
+}
+```
+
+## 📚 相关资源
+
+### MCP协议文档
+- [Model Context Protocol 规范](https://spec.modelcontextprotocol.io/)
+- [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
+
+### Cocos Creator文档
+- [扩展开发指南](https://docs.cocos.com/creator/manual/zh/extension/)
+- [Editor API 参考](https://docs.cocos.com/creator/api/zh/)
+- [场景操作 API](https://docs.cocos.com/creator/api/zh/modules/scene.html)
+
+### 项目资源
+- [项目README](../README.md) - 详细功能介绍
+- [工具实现示例](../source/mcp/tools/) - 具体工具实现参考
+- [配置管理](../source/mcp/config.ts) - 配置系统实现
+
+## 🎉 开发心得
+
+这个项目展示了如何将AI能力与游戏开发工具深度集成。通过MCP协议，AI助手可以直接与Cocos Creator编辑器交互，实现：
+
+1. **智能场景构建** - AI可以理解场景结构，创建和管理复杂的游戏对象
+2. **资产生成** - 集成AI图像生成，自动创建游戏资源
+3. **代码辅助** - 提供场景脚本执行和文件操作能力
+4. **类型安全** - 完整的TypeScript类型系统确保可靠性
+5. **模块化设计** - 清晰的架构便于扩展和维护
+
+开发此类工具需要平衡功能性、易用性和安全性，是AI应用与专业软件集成的优秀范例。
