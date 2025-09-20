@@ -1,0 +1,469 @@
+---
+globs: source/panels/**/*.vue,source/panels/**/*.ts,source/panels/**/*.js
+description: UI面板开发规范和最佳实践
+---
+
+# UI面板开发指南
+
+## 📁 面板文件结构
+
+每个面板目录应该包含以下文件：
+
+```
+panels/panel-name/
+├── index.ts              # 面板入口文件
+├── panel.vue             # Vue组件主文件
+├── style.css             # 样式文件 (可选)
+└── components/           # 子组件目录 (可选)
+    ├── SubComponent.vue
+    └── AnotherComponent.vue
+```
+
+### 面板入口文件 (index.ts)
+```typescript
+import { createPanel } from '@cocos/creator-types';
+import PanelComponent from './panel.vue';
+
+export const panel: PanelExtension = {
+  name: 'panel-name',
+  component: PanelComponent,
+  messages: {
+    // 消息处理方法
+    'method-name': async function(state, ...args) {
+      // 处理消息
+      return result;
+    }
+  }
+};
+```
+
+### Vue组件结构
+```vue
+<template>
+  <div class="panel-container">
+    <!-- UI内容 -->
+  </div>
+</template>
+
+<script lang="ts">
+import { defineComponent, ref, onMounted } from 'vue';
+
+export default defineComponent({
+  setup() {
+    // 响应式数据
+    const serverStatus = ref('stopped');
+    const config = ref({});
+
+    // 生命周期钩子
+    onMounted(async () => {
+      // 初始化逻辑
+      await loadInitialData();
+    });
+
+    // 方法定义
+    const startServer = async () => {
+      try {
+        const result = await Editor.Message.request('cocos-mcp', 'start-mcp-server', config.value);
+        if (result.success) {
+          serverStatus.value = 'running';
+        }
+      } catch (error) {
+        console.error('启动服务器失败:', error);
+      }
+    };
+
+    return {
+      serverStatus,
+      config,
+      startServer
+    };
+  }
+});
+</script>
+
+<style scoped>
+/* 组件样式 */
+.panel-container {
+  padding: 16px;
+}
+</style>
+```
+
+## 🎨 UI组件规范
+
+### 1. 样式规范
+```css
+/* 使用CSS变量保持一致性 */
+.panel-container {
+  --primary-color: #007acc;
+  --border-color: #e1e4e8;
+  --text-color: #24292f;
+  --background-color: #ffffff;
+}
+
+/* 响应式布局 */
+.panel-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 按钮样式 */
+.btn {
+  padding: 8px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--background-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  background: #f6f8fa;
+}
+
+.btn.primary {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+```
+
+### 2. 布局组件
+```vue
+<!-- 标准面板布局 -->
+<template>
+  <ui-panel>
+    <ui-panel-header>
+      <ui-label>面板标题</ui-label>
+    </ui-panel-header>
+
+    <ui-panel-body>
+      <!-- 主要内容区域 -->
+      <div class="panel-content">
+        <!-- 工具栏 -->
+        <div class="toolbar">
+          <ui-button @click="startServer" :disabled="isRunning">
+            启动服务器
+          </ui-button>
+          <ui-button @click="stopServer" :disabled="!isRunning">
+            停止服务器
+          </ui-button>
+        </div>
+
+        <!-- 配置区域 -->
+        <div class="config-section">
+          <ui-label>服务器配置</ui-label>
+          <ui-input v-model="config.port" placeholder="端口号" />
+        </div>
+
+        <!-- 状态显示 -->
+        <div class="status-section">
+          <ui-label>状态: {{ serverStatus }}</ui-label>
+        </div>
+      </div>
+    </ui-panel-body>
+  </ui-panel>
+</template>
+```
+
+## 🔄 消息系统集成
+
+### 1. 发送消息到主进程
+```typescript
+// 方法1: 使用Editor.Message.request (异步，有返回值)
+const result = await Editor.Message.request('cocos-mcp', 'start-mcp-server', {
+  port: 3000
+});
+
+// 方法2: 使用Editor.Message.send (同步，无返回值)
+Editor.Message.send('cocos-mcp', 'update-config', config);
+```
+
+### 2. 监听来自主进程的消息
+```typescript
+// 在Vue组件中监听消息
+import { defineComponent, onMounted, onUnmounted } from 'vue';
+
+export default defineComponent({
+  setup() {
+    let messageHandler: ((event: any, ...args: any[]) => void) | null = null;
+
+    onMounted(() => {
+      // 监听服务器状态变化
+      messageHandler = (event: any, status: string) => {
+        serverStatus.value = status;
+      };
+
+      // 注册消息监听器
+      Editor.Message.addBroadcastListener('mcp-server-status-changed', messageHandler);
+    });
+
+    onUnmounted(() => {
+      // 清理消息监听器
+      if (messageHandler) {
+        Editor.Message.removeBroadcastListener('mcp-server-status-changed', messageHandler);
+      }
+    });
+
+    return {
+      // ...
+    };
+  }
+});
+```
+
+## 📊 状态管理
+
+### 1. 响应式状态
+```typescript
+import { ref, reactive } from 'vue';
+
+export default defineComponent({
+  setup() {
+    // 简单状态
+    const serverStatus = ref<'stopped' | 'starting' | 'running' | 'error'>('stopped');
+
+    // 复杂状态对象
+    const config = reactive({
+      port: 3000,
+      name: 'cocos-mcp-server',
+      version: '1.0.0',
+      tools: {
+        createNodes: true,
+        modifyNodes: true,
+        // ...
+      }
+    });
+
+    // 计算属性
+    const isRunning = computed(() => serverStatus.value === 'running');
+    const enabledToolsCount = computed(() =>
+      Object.values(config.tools).filter(Boolean).length
+    );
+  }
+});
+```
+
+### 2. 状态持久化
+```typescript
+// 使用localStorage持久化状态
+const STORAGE_KEY = 'mcp-panel-config';
+
+const loadConfig = () => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch (error) {
+    console.error('加载配置失败:', error);
+    return {};
+  }
+};
+
+const saveConfig = (config: any) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+  } catch (error) {
+    console.error('保存配置失败:', error);
+  }
+};
+
+// 在组件中使用
+export default defineComponent({
+  setup() {
+    const config = reactive({ ...loadConfig() });
+
+    // 监听配置变化并保存
+    watch(config, (newConfig) => {
+      saveConfig(newConfig);
+    }, { deep: true });
+  }
+});
+```
+
+## 🎯 表单处理
+
+### 1. 表单验证
+```vue
+<template>
+  <form @submit.prevent="handleSubmit">
+    <ui-input
+      v-model="form.port"
+      :error="errors.port"
+      placeholder="端口号 (3000-9999)"
+    />
+    <ui-button type="submit" :disabled="!isFormValid">
+      保存配置
+    </ui-button>
+  </form>
+</template>
+
+<script lang="ts">
+import { defineComponent, ref, computed } from 'vue';
+
+export default defineComponent({
+  setup() {
+    const form = ref({
+      port: 3000
+    });
+
+    const errors = ref<Record<string, string>>({});
+
+    const validateForm = () => {
+      errors.value = {};
+
+      if (!form.value.port || form.value.port < 3000 || form.value.port > 9999) {
+        errors.value.port = '端口号必须在3000-9999之间';
+      }
+    };
+
+    const isFormValid = computed(() => Object.keys(errors.value).length === 0);
+
+    const handleSubmit = async () => {
+      validateForm();
+
+      if (!isFormValid.value) return;
+
+      try {
+        await saveConfig(form.value);
+        // 显示成功消息
+      } catch (error) {
+        // 显示错误消息
+      }
+    };
+
+    return {
+      form,
+      errors,
+      isFormValid,
+      handleSubmit
+    };
+  }
+});
+</script>
+```
+
+## 🔄 异步操作处理
+
+### 1. Loading状态
+```typescript
+const startServer = async () => {
+  loading.value = true;
+  error.value = null;
+
+  try {
+    const result = await Editor.Message.request('cocos-mcp', 'start-mcp-server', config.value);
+
+    if (result.success) {
+      serverStatus.value = 'running';
+    } else {
+      throw new Error(result.message);
+    }
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : String(err);
+    serverStatus.value = 'error';
+  } finally {
+    loading.value = false;
+  }
+};
+```
+
+### 2. 重试机制
+```typescript
+const retryOperation = async (operation: () => Promise<any>, maxRetries = 3) => {
+  let lastError: Error;
+
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      if (i < maxRetries - 1) {
+        // 等待后重试
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      }
+    }
+  }
+
+  throw lastError;
+};
+```
+
+## 📱 响应式设计
+
+### 1. 媒体查询
+```css
+/* 桌面端布局 */
+@media (min-width: 768px) {
+  .panel-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+}
+
+/* 移动端布局 */
+@media (max-width: 767px) {
+  .panel-content {
+    padding: 12px;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+```
+
+### 2. 动态组件
+```vue
+<template>
+  <div class="panel-container">
+    <!-- 桌面端显示表格 -->
+    <ui-table v-if="isDesktop" :data="data" />
+
+    <!-- 移动端显示卡片 -->
+    <div v-else class="card-list">
+      <ui-card v-for="item in data" :key="item.id">
+        {{ item.name }}
+      </ui-card>
+    </div>
+  </div>
+</template>
+
+<script lang="ts">
+import { defineComponent, ref, computed } from 'vue';
+
+export default defineComponent({
+  setup() {
+    // 检测屏幕尺寸
+    const screenWidth = ref(window.innerWidth);
+
+    const isDesktop = computed(() => screenWidth.value >= 768);
+
+    // 监听窗口大小变化
+    const handleResize = () => {
+      screenWidth.value = window.innerWidth;
+    };
+
+    onMounted(() => {
+      window.addEventListener('resize', handleResize);
+    });
+
+    onUnmounted(() => {
+      window.removeEventListener('resize', handleResize);
+    });
+
+    return {
+      isDesktop
+    };
+  }
+});
+</script>
+```
