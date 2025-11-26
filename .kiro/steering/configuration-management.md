@@ -1,0 +1,556 @@
+---
+inclusion: fileMatch
+fileMatchPattern: ['source/mcp/config*.ts', 'source/mcp/config-storage.ts', 'package.json']
+---
+
+# 配置管理系统指南
+
+## 📋 配置结构概述
+
+### 主要配置接口
+```typescript
+export interface McpServerConfig {
+  port: number;
+  name: string;
+  version: string;
+  tools: McpServerToolConfig;
+  imageGeneration: ImageGenerationConfig;
+}
+
+export interface McpServerToolConfig {
+  // 核心工具 (默认启用)
+  createNodes: boolean;
+  modifyNodes: boolean;
+  queryNodes: boolean;
+  queryComponents: boolean;
+  modifyComponents: boolean;
+
+  // 场景和资源工具 (默认启用)
+  operateCurrentScene: boolean;
+  operatePrefabAssets: boolean;
+  operateAssets: boolean;
+  nodeLinkedPrefabsOperations: boolean;
+
+  // 发现工具 (默认启用)
+  getAvailableComponentTypes: boolean;
+  getAvailableAssetTypes: boolean;
+  getAssetsByType: boolean;
+
+  // 生成工具 (默认启用)
+  generateImageAsset: boolean;
+
+  // 项目工具 (默认启用)
+  operateProjectSettings: boolean;
+
+  // 文件系统工具 (默认禁用，安全性考虑)
+  operateScriptsAndText: boolean;
+
+  // 代码执行工具 (默认禁用，安全性考虑)
+  executeSceneCode: boolean;
+}
+
+export interface ImageGenerationConfig {
+  enabled: boolean;
+  providers: ImageGenerationProvider[];
+  defaultProvider?: string;
+  defaultModel?: string;
+  maxImageSize?: number;
+  outputFormat?: 'png' | 'jpg' | 'webp';
+  quality?: number;
+}
+```
+
+### 默认配置
+```typescript
+export const DEFAULT_SERVER_CONFIG: McpServerConfig = {
+  port: 3000,
+  name: "cocos-mcp-server",
+  version: "1.0.1",
+  tools: DEFAULT_TOOL_CONFIG,
+  imageGeneration: DEFAULT_IMAGE_GENERATION_CONFIG
+};
+```
+
+## 🔧 配置管理类
+
+### ConfigStorage类
+```typescript
+// source/mcp/config-storage.ts
+export class ConfigStorage {
+  private configPath: string;
+  private defaultConfig: McpServerConfig;
+
+  constructor(defaultConfig: McpServerConfig = DEFAULT_SERVER_CONFIG) {
+    this.defaultConfig = defaultConfig;
+    this.configPath = this.getConfigPath();
+  }
+
+  /**
+   * 加载配置文件
+   * @returns 配置对象
+   */
+  public loadConfig(): McpServerConfig {
+    try {
+      if (!fs.existsSync(this.configPath)) {
+        return this.getDefaultConfig();
+      }
+
+      const configData = fs.readFileSync(this.configPath, 'utf8');
+      const parsedConfig = JSON.parse(configData);
+
+      // 合并配置，使用默认配置作为基础
+      return this.mergeConfig(this.defaultConfig, parsedConfig);
+    } catch (error) {
+      console.error('加载配置失败:', error);
+      return this.getDefaultConfig();
+    }
+  }
+
+  /**
+   * 保存配置到文件
+   * @param config 配置对象
+   */
+  public async saveConfig(config: McpServerConfig): Promise<void> {
+    try {
+      // 确保配置目录存在
+      const configDir = path.dirname(this.configPath);
+      if (!fs.existsSync(configDir)) {
+        fs.mkdirSync(configDir, { recursive: true });
+      }
+
+      // 保存配置
+      fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2));
+      console.log('配置已保存到:', this.configPath);
+    } catch (error) {
+      console.error('保存配置失败:', error);
+      throw error;
+    }
+  }
+}
+```
+
+## 📁 配置文件位置
+
+### 开发环境
+```typescript
+// 配置文件路径逻辑
+private getConfigPath(): string {
+  const userDataPath = Editor.Profile.load('local://user-data') || '';
+  const extensionName = 'cocos-mcp';
+  return path.join(userDataPath, extensionName, 'config.json');
+}
+```
+
+### 配置文件结构
+```json
+{
+  "port": 3000,
+  "name": "cocos-mcp-server",
+  "version": "1.0.1",
+  "tools": {
+    "createNodes": true,
+    "modifyNodes": true,
+    "queryNodes": true,
+    "queryComponents": true,
+    "modifyComponents": true,
+    "operateCurrentScene": true,
+    "operatePrefabAssets": true,
+    "operateAssets": true,
+    "nodeLinkedPrefabsOperations": true,
+    "getAvailableComponentTypes": true,
+    "getAvailableAssetTypes": true,
+    "getAssetsByType": true,
+    "generateImageAsset": true,
+    "operateProjectSettings": true,
+    "operateScriptsAndText": false,
+    "executeSceneCode": false
+  },
+  "imageGeneration": {
+    "enabled": true,
+    "providers": [
+      {
+        "id": "local-sd",
+        "name": "Local Stable Diffusion",
+        "type": "stable-diffusion",
+        "enabled": false,
+        "config": {
+          "baseUrl": "http://localhost:7860",
+          "timeout": 30000
+        },
+        "models": []
+      }
+    ],
+    "defaultProvider": "local-sd",
+    "defaultModel": "sd-v1.5",
+    "maxImageSize": 1024,
+    "outputFormat": "png",
+    "quality": 90
+  }
+}
+```
+
+## 🔄 配置更新机制
+
+### 运行时配置更新
+```typescript
+// McpServerManager中的配置更新方法
+public updateConfig(config: Partial<McpServerConfig> | Partial<ServerConfig>): void {
+  // 处理旧版配置格式
+  if ('tools' in config) {
+    // 新格式配置 - 正确合并工具配置
+    const newConfig = config as Partial<McpServerConfig>;
+    this.config = {
+      ...this.config,
+      ...newConfig,
+      tools: {
+        ...this.config.tools,
+        ...newConfig.tools
+      },
+      imageGeneration: {
+        ...this.config.imageGeneration,
+        ...newConfig.imageGeneration
+      }
+    };
+  } else {
+    // 旧版格式 - 只更新基本服务器设置
+    const legacyConfig = config as Partial<ServerConfig>;
+    this.config = {
+      ...this.config,
+      port: legacyConfig.port ?? this.config.port,
+      name: legacyConfig.name ?? this.config.name,
+      version: legacyConfig.version ?? this.config.version
+    };
+  }
+
+  // 更新图像生成服务配置
+  this.imageGenerationService.updateConfig(this.config.imageGeneration);
+
+  // 保存配置到磁盘
+  this.configStorage.saveConfig(this.config);
+}
+```
+
+### 配置验证
+```typescript
+// 配置验证函数
+private validateConfig(config: any): config is McpServerConfig {
+  // 检查必需字段
+  if (!config || typeof config !== 'object') {
+    return false;
+  }
+
+  if (typeof config.port !== 'number' || config.port < 1024 || config.port > 65535) {
+    return false;
+  }
+
+  if (typeof config.name !== 'string' || config.name.trim().length === 0) {
+    return false;
+  }
+
+  if (!config.tools || typeof config.tools !== 'object') {
+    return false;
+  }
+
+  // 验证工具配置
+  const requiredTools = ['createNodes', 'modifyNodes', 'queryNodes'];
+  for (const tool of requiredTools) {
+    if (typeof config.tools[tool] !== 'boolean') {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// 配置合并函数
+private mergeConfig(base: McpServerConfig, update: Partial<McpServerConfig>): McpServerConfig {
+  const result = { ...base };
+
+  // 深度合并对象
+  if (update.tools) {
+    result.tools = { ...base.tools, ...update.tools };
+  }
+
+  if (update.imageGeneration) {
+    result.imageGeneration = {
+      ...base.imageGeneration,
+      ...update.imageGeneration,
+      providers: update.imageGeneration.providers || base.imageGeneration.providers
+    };
+  }
+
+  return result;
+}
+```
+
+## 🎛️ UI配置面板
+
+### 工具配置面板
+```vue
+<template>
+  <div class="tool-config-panel">
+    <ui-panel-header>
+      <ui-label>工具配置</ui-label>
+    </ui-panel-header>
+
+    <ui-panel-body>
+      <div class="config-section">
+        <!-- 核心工具 -->
+        <div class="tool-category">
+          <ui-label>核心工具</ui-label>
+          <ui-checkbox
+            v-model="config.tools.createNodes"
+            label="创建节点"
+          />
+          <ui-checkbox
+            v-model="config.tools.modifyNodes"
+            label="修改节点"
+          />
+          <ui-checkbox
+            v-model="config.tools.queryNodes"
+            label="查询节点"
+          />
+        </div>
+
+        <!-- 安全敏感工具 -->
+        <div class="tool-category security-tools">
+          <ui-label>安全敏感工具 (需要谨慎启用)</ui-label>
+          <ui-checkbox
+            v-model="config.tools.operateScriptsAndText"
+            label="文件系统操作"
+          />
+          <ui-checkbox
+            v-model="config.tools.executeSceneCode"
+            label="代码执行"
+          />
+        </div>
+      </div>
+
+      <div class="actions">
+        <ui-button @click="saveConfig">保存配置</ui-button>
+        <ui-button @click="resetConfig">重置默认</ui-button>
+      </div>
+    </ui-panel-body>
+  </div>
+</template>
+
+<script lang="ts">
+import { defineComponent, ref, watch } from 'vue';
+
+export default defineComponent({
+  setup() {
+    const config = ref<McpServerConfig>({ ...DEFAULT_SERVER_CONFIG });
+
+    const saveConfig = async () => {
+      try {
+        await Editor.Message.request('cocos-mcp', 'update-mcp-server-config', config.value);
+        console.log('配置已保存');
+      } catch (error) {
+        console.error('保存配置失败:', error);
+      }
+    };
+
+    const resetConfig = () => {
+      config.value = { ...DEFAULT_SERVER_CONFIG };
+    };
+
+    return {
+      config,
+      saveConfig,
+      resetConfig
+    };
+  }
+});
+</script>
+```
+
+## 🔒 安全配置
+
+### 工具权限控制
+```typescript
+// 工具权限验证
+private validateToolAccess(toolName: string, config: McpServerConfig): boolean {
+  // 检查是否为安全敏感工具
+  const sensitiveTools = ['operateScriptsAndText', 'executeSceneCode'];
+
+  if (sensitiveTools.includes(toolName)) {
+    // 安全敏感工具需要显式启用
+    return config.tools[toolName as keyof McpServerToolConfig] === true;
+  }
+
+  // 其他工具按配置启用状态
+  return config.tools[toolName as keyof McpServerToolConfig] !== false;
+}
+
+// 工具注册时的权限检查
+if (this.validateToolAccess('operateScriptsAndText', this.config)) {
+  registerOperateScriptsAndTextTool(server);
+} else {
+  console.log('operateScriptsAndText tool is disabled for security reasons');
+}
+```
+
+### 配置加密
+```typescript
+// 敏感配置加密存储
+private encryptConfig(config: McpServerConfig): string {
+  const sensitiveKeys = ['apiKey', 'secret', 'token'];
+
+  const encrypted = { ...config };
+
+  // 递归加密敏感字段
+  const encryptObject = (obj: any) => {
+    for (const key in obj) {
+      if (sensitiveKeys.includes(key) && typeof obj[key] === 'string') {
+        obj[key] = this.encryptString(obj[key]);
+      } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+        encryptObject(obj[key]);
+      }
+    }
+  };
+
+  encryptObject(encrypted);
+  return JSON.stringify(encrypted);
+}
+
+// 配置解密
+private decryptConfig(encryptedData: string): McpServerConfig {
+  const decrypted = JSON.parse(encryptedData);
+
+  const decryptObject = (obj: any) => {
+    for (const key in obj) {
+      if (typeof obj[key] === 'string' && obj[key].startsWith('encrypted:')) {
+        obj[key] = this.decryptString(obj[key]);
+      } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+        decryptObject(obj[key]);
+      }
+    }
+  };
+
+  decryptObject(decrypted);
+  return decrypted;
+}
+```
+
+## 📊 配置监控和日志
+
+### 配置变更日志
+```typescript
+// 记录配置变更
+private logConfigChange(oldConfig: McpServerConfig, newConfig: McpServerConfig): void {
+  const changes: string[] = [];
+
+  if (oldConfig.port !== newConfig.port) {
+    changes.push(`端口: ${oldConfig.port} -> ${newConfig.port}`);
+  }
+
+  // 检查工具配置变更
+  for (const tool in oldConfig.tools) {
+    if (oldConfig.tools[tool] !== newConfig.tools[tool]) {
+      changes.push(`工具 ${tool}: ${oldConfig.tools[tool]} -> ${newConfig.tools[tool]}`);
+    }
+  }
+
+  if (changes.length > 0) {
+    console.log('配置变更:', changes.join(', '));
+  }
+}
+```
+
+### 配置状态监控
+```typescript
+// 定期检查配置完整性
+private startConfigMonitoring(): void {
+  setInterval(() => {
+    try {
+      const currentConfig = this.loadConfig();
+
+      // 检查配置完整性
+      if (!this.validateConfig(currentConfig)) {
+        console.warn('检测到配置损坏，正在恢复默认配置');
+        this.saveConfig(this.defaultConfig);
+      }
+
+      // 检查安全敏感工具状态
+      const sensitiveTools = ['operateScriptsAndText', 'executeSceneCode'];
+      const enabledSensitiveTools = sensitiveTools.filter(
+        tool => currentConfig.tools[tool as keyof McpServerToolConfig]
+      );
+
+      if (enabledSensitiveTools.length > 0) {
+        console.info('安全敏感工具已启用:', enabledSensitiveTools.join(', '));
+      }
+    } catch (error) {
+      console.error('配置监控出错:', error);
+    }
+  }, 30000); // 每30秒检查一次
+}
+```
+
+## 🚀 配置最佳实践
+
+### 1. 配置版本管理
+```typescript
+// 配置文件版本控制
+interface ConfigVersion {
+  version: string;
+  timestamp: number;
+  config: McpServerConfig;
+}
+
+// 保存配置版本历史
+public async saveConfigWithVersion(config: McpServerConfig): Promise<void> {
+  const versionEntry: ConfigVersion = {
+    version: '1.0',
+    timestamp: Date.now(),
+    config: { ...config }
+  };
+
+  // 保存到版本历史
+  await this.saveConfigVersion(versionEntry);
+
+  // 保存当前配置
+  await this.saveConfig(config);
+}
+```
+
+### 2. 配置备份和恢复
+```typescript
+// 备份当前配置
+public async backupConfig(): Promise<string> {
+  const backupPath = `${this.configPath}.backup`;
+  fs.copyFileSync(this.configPath, backupPath);
+  return backupPath;
+}
+
+// 恢复配置
+public async restoreConfig(backupPath: string): Promise<void> {
+  if (fs.existsSync(backupPath)) {
+    fs.copyFileSync(backupPath, this.configPath);
+    console.log('配置已从备份恢复');
+  } else {
+    throw new Error('备份文件不存在');
+  }
+}
+```
+
+### 3. 配置迁移
+```typescript
+// 配置格式迁移
+private migrateConfig(oldConfig: any): McpServerConfig {
+  // 旧版配置迁移逻辑
+  if (oldConfig.version === '0.9.0') {
+    // 迁移到新格式
+    return {
+      ...DEFAULT_SERVER_CONFIG,
+      ...oldConfig,
+      tools: {
+        ...DEFAULT_TOOL_CONFIG,
+        ...oldConfig.tools
+      }
+    };
+  }
+
+  return oldConfig;
+}
+```
