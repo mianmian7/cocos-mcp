@@ -30,6 +30,24 @@ async function getServerManager() {
  */
 export const load: () => void = function () {
     console.log('MCP Extension loaded');
+
+    // Automatically start MCP server on extension load
+    (async () => {
+        try {
+            const manager = await getServerManager();
+
+            if (manager.isServerRunning()) {
+                console.log('MCP server is already running');
+                return;
+            }
+
+            const currentConfig = manager.getConfig();
+            await methods.startMcpServer(currentConfig);
+            console.log('MCP server started automatically on load');
+        } catch (error) {
+            console.error('Failed to automatically start MCP server on load:', error);
+        }
+    })();
 };
 
 /**
@@ -208,7 +226,7 @@ export const methods: Record<string, (...args: any[]) => any> = {
             return {
                 isRunning: false,
                 config: {
-                    port: 3000,
+                    port: 4396,
                     name: "cocos-mcp-server",
                     version: "1.0.1",
                     tools: {

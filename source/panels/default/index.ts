@@ -34,15 +34,15 @@ module.exports = Editor.Panel.define({
                         VERSION,
                         serverInfo: {
                             isRunning: false,
-                            config: { 
-                                port: 3000, 
-                                name: 'cocos-mcp-server', 
+                            config: {
+                                port: 4396,
+                                name: 'cocos-mcp-server',
                                 version: VERSION,
                                 tools: {}
                             }
                         },
                         config: {
-                            port: 3000,
+                            port: 4396,
                             name: 'cocos-mcp-server',
                             tools: {}
                         },
@@ -56,7 +56,7 @@ module.exports = Editor.Panel.define({
                         try {
                             // Create a deep copy to avoid Vue reactivity issues
                             const configData = JSON.parse(JSON.stringify({
-                                port: Number(this.config.port) || 3000,
+                                port: Number(this.config.port) || 4396,
                                 name: String(this.config.name) || 'cocos-mcp-server',
                                 version: this.VERSION,
                                 tools: this.config.tools
@@ -96,7 +96,7 @@ module.exports = Editor.Panel.define({
                         
                         try {
                             const configData = JSON.parse(JSON.stringify({
-                                port: Number(this.config.port) || 3000,
+                                port: Number(this.config.port) || 4396,
                                 name: String(this.config.name) || 'cocos-mcp-server',
                                 version: this.VERSION,
                                 tools: this.config.tools
