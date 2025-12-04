@@ -36,8 +36,16 @@ export const load: () => void = function () {
  * @en Method triggered when uninstalling the extension
  * @zh 卸载扩展时触发的方法
  */
-export const unload: () => void = function () {
-    methods.stopMcpServer();
+export const unload: () => Promise<void> = async function () {
+    try {
+        const result = await methods.stopMcpServer();
+        if (result?.success === false) {
+            console.error('Failed to stop MCP server during unload:', result.message);
+        }
+    } catch (error) {
+        console.error('Error stopping MCP server during unload:', error);
+    }
+
     console.log('MCP Extension unloaded');
 };
 
