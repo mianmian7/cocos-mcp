@@ -1,5 +1,6 @@
 import { ExecuteSceneScriptMethodOptions } from '@cocos/creator-types/editor/packages/scene/@types/public';
 import packageJSON from '../package.json';
+import { DEFAULT_IMAGE_GENERATION_CONFIG } from './mcp/config.js';
 
 // Try importing the server manager
 let McpServerManager: any = null;
@@ -70,15 +71,8 @@ export const methods: Record<string, (...args: any[]) => any> = {
         } catch (error) {
             console.error('Error getting image config:', error);
             return {
-                imageGeneration: {
-                    providers: [],
-                    defaultProvider: '',
-                    globalSettings: {
-                        timeout: 30000,
-                        retries: 3,
-                        quality: 'high'
-                    }
-                }
+                ...DEFAULT_IMAGE_GENERATION_CONFIG,
+                providers: [...DEFAULT_IMAGE_GENERATION_CONFIG.providers]
             };
         }
     },
