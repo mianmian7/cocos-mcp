@@ -240,7 +240,8 @@ export class McpServerManager {
 
   public async startServer(): Promise<void> {
     if (this.isRunning) {
-      throw new Error("Server is already running");
+      console.log("Server is already running, skipping start");
+      return;
     }
 
     try {
@@ -456,7 +457,8 @@ export class McpServerManager {
 
   public async stopServer(): Promise<void> {
     if (!this.isRunning) {
-      throw new Error("Server is not running");
+      console.log("Server is not running, skipping stop");
+      return;
     }
 
     try {
