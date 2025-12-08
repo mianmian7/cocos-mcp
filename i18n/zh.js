@@ -64,6 +64,9 @@ module.exports = {
     url: "地址",
     active_tools: "已启用工具",
     
+    // MCP client config section
+    copy_config: "复制配置",
+    
     // AI Config Panel
     ai_image_config: "🎨 AI 图像生成配置",
     refresh: "刷新",

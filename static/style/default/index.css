@@ -276,3 +276,25 @@
 .server-info {
     margin-bottom: 30px;
 }
+
+/* Quick Copy Config Section */
+.quick-copy-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 10px 15px;
+    background-color: var(--color-normal-fill-secondary);
+    border-radius: 6px;
+    flex-wrap: wrap;
+}
+
+.quick-copy-label {
+    font-size: 12px;
+    color: var(--color-normal-contrast-weaker);
+}
+
+.quick-copy-section ui-button {
+    min-width: 120px;
+}
