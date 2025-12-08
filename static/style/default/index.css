@@ -298,3 +298,8 @@
 .quick-copy-section ui-button {
     min-width: 120px;
 }
+
+.quick-copy-btn.copied {
+    background-color: var(--color-success-fill);
+    color: var(--color-success-contrast-strongest);
+}
