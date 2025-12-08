@@ -10,29 +10,38 @@
     <div class="config-grid">
       <div class="config-item">
         <label for="port">Port:</label>
-        <ui-num-input 
+        <ui-num-input
           id="port"
-          v-model="config.port" 
+          v-model="config.port"
           :disabled="serverInfo.isRunning"
-          :min="1000" 
+          :min="1000"
           :max="65535"
           placeholder="3000">
         </ui-num-input>
       </div>
-      
+
       <div class="config-item">
         <label for="name">Name:</label>
-        <ui-input 
+        <ui-input
           id="name"
-          v-model="config.name" 
+          v-model="config.name"
           :disabled="serverInfo.isRunning"
           placeholder="cocos-mcp-server">
         </ui-input>
       </div>
-      
+
       <div class="config-item">
         <label for="version">Version:</label>
         <span class="version-display">{{ VERSION }}</span>
+      </div>
+
+      <div class="config-item auto-start-item">
+        <ui-checkbox
+          :value="config.autoStart"
+          @change="onAutoStartChange">
+        </ui-checkbox>
+        <label for="autoStart">Auto Start</label>
+        <span class="auto-start-hint">(Automatically start server when extension loads)</span>
       </div>
     </div>
   </div>

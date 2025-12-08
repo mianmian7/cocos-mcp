@@ -29,21 +29,23 @@ module.exports = Editor.Panel.define({
            
             app.component('McpServerControl', defineComponent({
                 data() {
-                    const VERSION = '1.0.1';
+                    const VERSION = '1.0.2';
                     return {
                         VERSION,
                         serverInfo: {
                             isRunning: false,
-                            config: { 
-                                port: 3000, 
-                                name: 'cocos-mcp-server', 
+                            config: {
+                                port: 3000,
+                                name: 'cocos-mcp-server',
                                 version: VERSION,
+                                autoStart: false,
                                 tools: {}
                             }
                         },
                         config: {
                             port: 3000,
                             name: 'cocos-mcp-server',
+                            autoStart: false,
                             tools: {}
                         },
                         isLoading: false
@@ -52,13 +54,14 @@ module.exports = Editor.Panel.define({
                 methods: {
                     async startServer() {
                         this.isLoading = true;
-                        
+
                         try {
                             // Create a deep copy to avoid Vue reactivity issues
                             const configData = JSON.parse(JSON.stringify({
                                 port: Number(this.config.port) || 3000,
                                 name: String(this.config.name) || 'cocos-mcp-server',
                                 version: this.VERSION,
+                                autoStart: Boolean(this.config.autoStart),
                                 tools: this.config.tools
                             }));
                             const result = await Editor.Message.request('cocos-mcp', 'start-mcp-server', configData);
@@ -93,15 +96,16 @@ module.exports = Editor.Panel.define({
                     
                     async saveConfig() {
                         this.isLoading = true;
-                        
+
                         try {
                             const configData = JSON.parse(JSON.stringify({
                                 port: Number(this.config.port) || 3000,
                                 name: String(this.config.name) || 'cocos-mcp-server',
                                 version: this.VERSION,
+                                autoStart: Boolean(this.config.autoStart),
                                 tools: this.config.tools
                             }));
-                            
+
                             const result = await Editor.Message.request('cocos-mcp', 'update-mcp-server-config', configData);
                             if (result && result.success) {
                                 // Configuration saved successfully
@@ -125,21 +129,24 @@ module.exports = Editor.Panel.define({
                                     port: info.config.port,
                                     name: info.config.name,
                                     version: this.VERSION,
+                                    autoStart: info.config.autoStart || false,
                                     tools: info.config.tools
                                 }
                             }));
-                            
+
                             // Only update local config if server is running to avoid overriding user changes
                             if (info.isRunning && info.config.tools) {
                                 this.config = JSON.parse(JSON.stringify({
                                     port: info.config.port,
                                     name: info.config.name,
+                                    autoStart: info.config.autoStart || false,
                                     tools: info.config.tools
                                 }));
                             } else if (!info.isRunning) {
                                 // When server is not running, only update port and name, keep tool config as-is
                                 this.config.port = info.config.port;
                                 this.config.name = info.config.name;
+                                this.config.autoStart = info.config.autoStart || false;
                             }
                         } catch (error) {
                             console.error('Error getting server info:', error);
@@ -172,17 +179,25 @@ module.exports = Editor.Panel.define({
                         const newValue = event.target.value;
                         (this.config.tools as any)[toolName] = newValue;
                         this.saveConfig();
+                    },
+
+                    // Handler for auto-start checkbox
+                    onAutoStartChange(event: any) {
+                        const newValue = event.target.value;
+                        this.config.autoStart = newValue;
+                        this.saveConfig();
                     }
                 },
                 
                 async mounted() {
                     // Load initial config from server
                     await this.refreshServerInfo();
-                    
+
                     // Initialize local config with server config
                     this.config = {
                         port: this.serverInfo.config.port,
                         name: this.serverInfo.config.name,
+                        autoStart: this.serverInfo.config.autoStart || false,
                         tools: { ...this.serverInfo.config.tools }
                     };
                     

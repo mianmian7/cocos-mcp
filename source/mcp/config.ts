@@ -67,6 +67,7 @@ export interface McpServerConfig {
   port: number;
   name: string;
   version: string;
+  autoStart: boolean;  // 扩展加载时自动启动MCP服务器
   tools: McpServerToolConfig;
   imageGeneration: ImageGenerationConfig;
 }
@@ -154,7 +155,8 @@ export const DEFAULT_TOOL_CONFIG: McpServerToolConfig = {
 export const DEFAULT_SERVER_CONFIG: McpServerConfig = {
   port: 3000,
   name: "cocos-mcp-server",
-  version: "1.0.1",
+  version: "1.0.2",
+  autoStart: false,  // 默认不自动启动，让用户主动选择开启
   tools: DEFAULT_TOOL_CONFIG,
   imageGeneration: DEFAULT_IMAGE_GENERATION_CONFIG
 };
