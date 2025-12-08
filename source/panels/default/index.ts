@@ -49,6 +49,7 @@ module.exports = Editor.Panel.define({
                             tools: {}
                         },
                         isLoading: false,
+                        copiedBtn: '' as string,
                         i18n: {
                             mcp_server_control: Editor.I18n.t('cocos-mcp.mcp_server_control'),
                             status_running: Editor.I18n.t('cocos-mcp.status_running'),
@@ -232,9 +233,11 @@ module.exports = Editor.Panel.define({
                     },
 
                     // Copy config methods
-                    async copyToClipboard(text: string) {
+                    async copyToClipboard(text: string, btnName: string) {
                         try {
                             await navigator.clipboard.writeText(text);
+                            this.copiedBtn = btnName;
+                            setTimeout(() => { this.copiedBtn = ''; }, 1500);
                         } catch (error) {
                             console.error('Failed to copy:', error);
                         }
@@ -242,7 +245,7 @@ module.exports = Editor.Panel.define({
 
                     copyClaudeCode() {
                         const cmd = `claude mcp add --transport http cocos-creator http://127.0.0.1:${this.config.port}/mcp`;
-                        this.copyToClipboard(cmd);
+                        this.copyToClipboard(cmd, 'claude');
                     },
 
                     copyCursorVscode() {
@@ -253,7 +256,7 @@ module.exports = Editor.Panel.define({
                                 }
                             }
                         }, null, 2);
-                        this.copyToClipboard(config);
+                        this.copyToClipboard(config, 'cursor');
                     }
                 },
                 

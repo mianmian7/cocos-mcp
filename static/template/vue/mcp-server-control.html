@@ -66,8 +66,8 @@
 
   <div class="quick-copy-section">
     <span class="quick-copy-label">{{ i18n.copy_config }}:</span>
-    <ui-button class="quick-copy-btn" @click="copyClaudeCode">Claude Code</ui-button>
-    <ui-button class="quick-copy-btn" @click="copyCursorVscode">Cursor / VS Code</ui-button>
+    <ui-button class="quick-copy-btn" :class="{ copied: copiedBtn === 'claude' }" @click="copyClaudeCode">{{ copiedBtn === 'claude' ? '✓ Copied' : 'Claude Code' }}</ui-button>
+    <ui-button class="quick-copy-btn" :class="{ copied: copiedBtn === 'cursor' }" @click="copyCursorVscode">{{ copiedBtn === 'cursor' ? '✓ Copied' : 'Cursor / VS Code' }}</ui-button>
   </div>
 
   <div class="tools-config">
