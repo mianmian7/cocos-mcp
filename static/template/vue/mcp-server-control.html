@@ -64,6 +64,12 @@
     </ui-button>
   </div>
 
+  <div class="quick-copy-section">
+    <span class="quick-copy-label">{{ i18n.copy_config }}:</span>
+    <ui-button class="quick-copy-btn" @click="copyClaudeCode">Claude Code</ui-button>
+    <ui-button class="quick-copy-btn" @click="copyCursorVscode">Cursor / VS Code</ui-button>
+  </div>
+
   <div class="tools-config">
     <h3>{{ i18n.available_tools }}</h3>
     <div class="tools-grid">
@@ -236,7 +242,7 @@
   <div class="server-info" v-if="serverInfo.isRunning">
     <h3>{{ i18n.server_information }}</h3>
     <div class="info-row">
-      <strong>{{ i18n.url }}:</strong> http://localhost:{{ config.port }}
+      <strong>{{ i18n.url }}:</strong> http://localhost:{{ config.port }}/mcp
     </div>
     <div class="info-row">
       <strong>{{ i18n.name }}:</strong> {{ config.name }}

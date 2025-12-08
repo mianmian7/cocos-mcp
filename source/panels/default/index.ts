@@ -89,7 +89,8 @@ module.exports = Editor.Panel.define({
                             code_execution_warning: Editor.I18n.t('cocos-mcp.code_execution_warning'),
                             server_information: Editor.I18n.t('cocos-mcp.server_information'),
                             url: Editor.I18n.t('cocos-mcp.url'),
-                            active_tools: Editor.I18n.t('cocos-mcp.active_tools')
+                            active_tools: Editor.I18n.t('cocos-mcp.active_tools'),
+                            copy_config: Editor.I18n.t('cocos-mcp.copy_config')
                         }
                     };
                 }, 
@@ -228,6 +229,31 @@ module.exports = Editor.Panel.define({
                         const newValue = event.target.value;
                         this.config.autoStart = newValue;
                         this.saveConfig();
+                    },
+
+                    // Copy config methods
+                    async copyToClipboard(text: string) {
+                        try {
+                            await navigator.clipboard.writeText(text);
+                        } catch (error) {
+                            console.error('Failed to copy:', error);
+                        }
+                    },
+
+                    copyClaudeCode() {
+                        const cmd = `claude mcp add --transport http cocos-creator http://127.0.0.1:${this.config.port}/mcp`;
+                        this.copyToClipboard(cmd);
+                    },
+
+                    copyCursorVscode() {
+                        const config = JSON.stringify({
+                            mcpServers: {
+                                "cocos-creator": {
+                                    url: `http://localhost:${this.config.port}/mcp`
+                                }
+                            }
+                        }, null, 2);
+                        this.copyToClipboard(config);
                     }
                 },
                 
