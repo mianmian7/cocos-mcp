@@ -1,15 +1,15 @@
 <div class="mcp-server-control">
   <div class="header-section">
-    <h2>MCP Server Control</h2>
+    <h2>{{ i18n.mcp_server_control }}</h2>
     <div class="status-indicator" :class="{ 'running': serverInfo.isRunning, 'stopped': !serverInfo.isRunning }">
-      {{ serverInfo.isRunning ? 'RUNNING' : 'STOPPED' }}
+      {{ serverInfo.isRunning ? i18n.status_running : i18n.status_stopped }}
     </div>
   </div>
 
   <div class="server-config">
     <div class="config-grid">
       <div class="config-item">
-        <label for="port">Port:</label>
+        <label for="port">{{ i18n.port }}:</label>
         <ui-num-input
           id="port"
           v-model="config.port"
@@ -21,7 +21,7 @@
       </div>
 
       <div class="config-item">
-        <label for="name">Name:</label>
+        <label for="name">{{ i18n.name }}:</label>
         <ui-input
           id="name"
           v-model="config.name"
@@ -31,7 +31,7 @@
       </div>
 
       <div class="config-item">
-        <label for="version">Version:</label>
+        <label for="version">{{ i18n.version }}:</label>
         <span class="version-display">{{ VERSION }}</span>
       </div>
 
@@ -40,8 +40,8 @@
           :value="config.autoStart"
           @change="onAutoStartChange">
         </ui-checkbox>
-        <label for="autoStart">Auto Start</label>
-        <span class="auto-start-hint">(Automatically start server when extension loads)</span>
+        <label for="autoStart">{{ i18n.auto_start }}</label>
+        <span class="auto-start-hint">{{ i18n.auto_start_hint }}</span>
       </div>
     </div>
   </div>
@@ -52,7 +52,7 @@
       :class="{ green: !serverInfo.isRunning }"
       :disabled="serverInfo.isRunning || isLoading"
       @click="startServer">
-      {{ isLoading && !serverInfo.isRunning ? 'Starting...' : 'Start Server' }}
+      {{ isLoading && !serverInfo.isRunning ? i18n.starting : i18n.start_server }}
     </ui-button>
     
     <ui-button 
@@ -60,23 +60,23 @@
       :class="{ red: serverInfo.isRunning }"
       :disabled="!serverInfo.isRunning || isLoading"
       @click="stopServer">
-      {{ isLoading && serverInfo.isRunning ? 'Stopping...' : 'Stop Server' }}
+      {{ isLoading && serverInfo.isRunning ? i18n.stopping : i18n.stop_server }}
     </ui-button>
   </div>
 
   <div class="tools-config">
-    <h3>Available Tools</h3>
+    <h3>{{ i18n.available_tools }}</h3>
     <div class="tools-grid">
       <!-- Core Tools -->
       <div class="tool-category">
-        <h4>Core Tools</h4>
+        <h4>{{ i18n.core_tools }}</h4>
         <div class="tool-item">
           <ui-checkbox 
             :value="config.tools.createNodes" 
             @change="onToolChange('createNodes', $event)"
             :disabled="serverInfo.isRunning">
           </ui-checkbox>
-          <label>Create Nodes</label>
+          <label>{{ i18n.create_nodes }}</label>
         </div>
         <div class="tool-item">
           <ui-checkbox 
@@ -84,7 +84,7 @@
             @change="onToolChange('modifyNodes', $event)"
             :disabled="serverInfo.isRunning">
           </ui-checkbox>
-          <label>Modify Nodes</label>
+          <label>{{ i18n.modify_nodes }}</label>
         </div>
         <div class="tool-item">
           <ui-checkbox 
@@ -92,7 +92,7 @@
             @change="onToolChange('queryNodes', $event)"
             :disabled="serverInfo.isRunning">
           </ui-checkbox>
-          <label>Query Nodes</label>
+          <label>{{ i18n.query_nodes }}</label>
         </div>
         <div class="tool-item">
           <ui-checkbox 
@@ -100,7 +100,7 @@
             @change="onToolChange('queryComponents', $event)"
             :disabled="serverInfo.isRunning">
           </ui-checkbox>
-          <label>Query Components</label>
+          <label>{{ i18n.query_components }}</label>
         </div>
         <div class="tool-item">
           <ui-checkbox 
@@ -108,20 +108,20 @@
             @change="onToolChange('modifyComponents', $event)"
             :disabled="serverInfo.isRunning">
           </ui-checkbox>
-          <label>Modify Components</label>
+          <label>{{ i18n.modify_components }}</label>
         </div>
       </div>
 
       <!-- Scene & Asset Tools -->
       <div class="tool-category">
-        <h4>Scene & Assets</h4>
+        <h4>{{ i18n.scene_assets }}</h4>
         <div class="tool-item">
           <ui-checkbox 
             :value="config.tools.operateCurrentScene" 
             @change="onToolChange('operateCurrentScene', $event)"
             :disabled="serverInfo.isRunning">
           </ui-checkbox>
-          <label>Scene Operations</label>
+          <label>{{ i18n.scene_operations }}</label>
         </div>
         <div class="tool-item">
           <ui-checkbox 
@@ -129,7 +129,7 @@
             @change="onToolChange('operatePrefabAssets', $event)"
             :disabled="serverInfo.isRunning">
           </ui-checkbox>
-          <label>Prefab Operations</label>
+          <label>{{ i18n.prefab_operations }}</label>
         </div>
         <div class="tool-item">
           <ui-checkbox 
@@ -137,7 +137,7 @@
             @change="onToolChange('operateAssets', $event)"
             :disabled="serverInfo.isRunning">
           </ui-checkbox>
-          <label>Asset Operations</label>
+          <label>{{ i18n.asset_operations }}</label>
         </div>
         <div class="tool-item">
           <ui-checkbox 
@@ -145,20 +145,20 @@
             @change="onToolChange('nodeLinkedPrefabsOperations', $event)"
             :disabled="serverInfo.isRunning">
           </ui-checkbox>
-          <label>Linked Prefab Operations</label>
+          <label>{{ i18n.linked_prefab_operations }}</label>
         </div>
       </div>
 
       <!-- Discovery Tools -->
       <div class="tool-category">
-        <h4>Discovery</h4>
+        <h4>{{ i18n.discovery }}</h4>
         <div class="tool-item">
           <ui-checkbox 
             :value="config.tools.getAvailableComponentTypes" 
             @change="onToolChange('getAvailableComponentTypes', $event)"
             :disabled="serverInfo.isRunning">
           </ui-checkbox>
-          <label>Get Component Types</label>
+          <label>{{ i18n.get_component_types }}</label>
         </div>
         <div class="tool-item">
           <ui-checkbox 
@@ -166,7 +166,7 @@
             @change="onToolChange('getAvailableAssetTypes', $event)"
             :disabled="serverInfo.isRunning">
           </ui-checkbox>
-          <label>Get Asset Types</label>
+          <label>{{ i18n.get_asset_types }}</label>
         </div>
         <div class="tool-item">
           <ui-checkbox 
@@ -174,20 +174,20 @@
             @change="onToolChange('getAssetsByType', $event)"
             :disabled="serverInfo.isRunning">
           </ui-checkbox>
-          <label>Get Assets by Type</label>
+          <label>{{ i18n.get_assets_by_type }}</label>
         </div>
       </div>
 
       <!-- Generation & Project Tools -->
       <div class="tool-category">
-        <h4>Generation & Project</h4>
+        <h4>{{ i18n.generation_project }}</h4>
         <div class="tool-item">
           <ui-checkbox 
             :value="config.tools.generateImageAsset" 
             @change="onToolChange('generateImageAsset', $event)"
             :disabled="serverInfo.isRunning">
           </ui-checkbox>
-          <label>Generate Image Assets</label>
+          <label>{{ i18n.generate_image_assets }}</label>
         </div>
         <div class="tool-item">
           <ui-checkbox 
@@ -195,38 +195,38 @@
             @change="onToolChange('operateProjectSettings', $event)"
             :disabled="serverInfo.isRunning">
           </ui-checkbox>
-          <label>Project Settings</label>
+          <label>{{ i18n.project_settings }}</label>
         </div>
       </div>
 
       <!-- File System Tools (Security Sensitive) -->
       <div class="tool-category security-warning">
-        <h4>⚠️ File System Tools</h4>
+        <h4>{{ i18n.file_system_tools }}</h4>
         <div class="tool-item">
           <ui-checkbox 
             :value="config.tools.operateScriptsAndText"
             @change="onOperateScriptsAndTextChange"
             :disabled="serverInfo.isRunning">
           </ui-checkbox>
-          <label>Advanced File Operations</label>
+          <label>{{ i18n.advanced_file_operations }}</label>
           <div class="security-note">
-            <small>⚠️ Allows AI to read, write, and modify project files directly</small>
+            <small>{{ i18n.file_operations_warning }}</small>
           </div>
         </div>
       </div>
 
       <!-- Code Execution Tools (Security Sensitive) -->
       <div class="tool-category security-warning">
-        <h4>⚠️ Code Execution Tools</h4>
+        <h4>{{ i18n.code_execution_tools }}</h4>
         <div class="tool-item">
           <ui-checkbox 
             :value="config.tools.executeSceneCode"
             @change="onExecuteSceneCodeChange"
             :disabled="serverInfo.isRunning">
           </ui-checkbox>
-          <label>Execute Scene Code</label>
+          <label>{{ i18n.execute_scene_code }}</label>
           <div class="security-note">
-            <small>⚠️ Allows AI to execute arbitrary code in the scene context</small>
+            <small>{{ i18n.code_execution_warning }}</small>
           </div>
         </div>
       </div>
@@ -234,18 +234,18 @@
   </div>
 
   <div class="server-info" v-if="serverInfo.isRunning">
-    <h3>Server Information</h3>
+    <h3>{{ i18n.server_information }}</h3>
     <div class="info-row">
-      <strong>URL:</strong> http://localhost:{{ config.port }}
+      <strong>{{ i18n.url }}:</strong> http://localhost:{{ config.port }}
     </div>
     <div class="info-row">
-      <strong>Name:</strong> {{ config.name }}
+      <strong>{{ i18n.name }}:</strong> {{ config.name }}
     </div>
     <div class="info-row">
-      <strong>Version:</strong> {{ VERSION }}
+      <strong>{{ i18n.version }}:</strong> {{ VERSION }}
     </div>
     <div class="info-row">
-      <strong>Active Tools:</strong> {{ getActiveToolsCount() }} / {{ getTotalToolsCount() }}
+      <strong>{{ i18n.active_tools }}:</strong> {{ getActiveToolsCount() }} / {{ getTotalToolsCount() }}
     </div>
   </div>
 

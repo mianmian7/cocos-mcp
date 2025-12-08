@@ -29,7 +29,7 @@
     },
     "panels": {
         "default": {
-            "title": "MCP Server Settings",
+            "title": "i18n:cocos-mcp.panel_mcp_settings",
             "type": "dockable",
             "main": "dist/panels/default",
             "size": {
@@ -40,7 +40,7 @@
             }
         },
         "image-generator": {
-            "title": "Image Generator",
+            "title": "i18n:cocos-mcp.panel_image_generator",
             "type": "simple",
             "main": "dist/panels/image-generator",
             "size": {
@@ -54,7 +54,7 @@
             }
         },
         "ai-config": {
-            "title": "AI Image Configuration",
+            "title": "i18n:cocos-mcp.panel_ai_config",
             "type": "dockable",
             "main": "dist/panels/ai-config",
             "size": {

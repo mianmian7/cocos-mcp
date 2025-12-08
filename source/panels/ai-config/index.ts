@@ -63,7 +63,92 @@ module.exports = Editor.Panel.define({
                         editingModel: null as any,
                         showProviderDialog: false,
                         showModelDialog: false,
-                        showImportDialog: false
+                        showImportDialog: false,
+                        i18n: {
+                            ai_image_config: Editor.I18n.t('cocos-mcp.ai_image_config'),
+                            refresh: Editor.I18n.t('cocos-mcp.refresh'),
+                            export: Editor.I18n.t('cocos-mcp.export'),
+                            import: Editor.I18n.t('cocos-mcp.import'),
+                            reset: Editor.I18n.t('cocos-mcp.reset'),
+                            loading: Editor.I18n.t('cocos-mcp.loading'),
+                            providers: Editor.I18n.t('cocos-mcp.providers'),
+                            add_provider: Editor.I18n.t('cocos-mcp.add_provider'),
+                            no_providers: Editor.I18n.t('cocos-mcp.no_providers'),
+                            test: Editor.I18n.t('cocos-mcp.test'),
+                            edit: Editor.I18n.t('cocos-mcp.edit'),
+                            delete: Editor.I18n.t('cocos-mcp.delete'),
+                            type: Editor.I18n.t('cocos-mcp.type'),
+                            url: Editor.I18n.t('cocos-mcp.url'),
+                            not_configured: Editor.I18n.t('cocos-mcp.not_configured'),
+                            models: Editor.I18n.t('cocos-mcp.models'),
+                            enabled: Editor.I18n.t('cocos-mcp.enabled'),
+                            total: Editor.I18n.t('cocos-mcp.total'),
+                            connection_successful: Editor.I18n.t('cocos-mcp.connection_successful'),
+                            connection_failed: Editor.I18n.t('cocos-mcp.connection_failed'),
+                            error: Editor.I18n.t('cocos-mcp.error'),
+                            debug_information: Editor.I18n.t('cocos-mcp.debug_information'),
+                            fetch_models: Editor.I18n.t('cocos-mcp.fetch_models'),
+                            enable_all: Editor.I18n.t('cocos-mcp.enable_all'),
+                            disable_all: Editor.I18n.t('cocos-mcp.disable_all'),
+                            no_models: Editor.I18n.t('cocos-mcp.no_models'),
+                            fetch_models_hint: Editor.I18n.t('cocos-mcp.fetch_models_hint'),
+                            configure_url_hint: Editor.I18n.t('cocos-mcp.configure_url_hint'),
+                            global_settings: Editor.I18n.t('cocos-mcp.global_settings'),
+                            default_provider: Editor.I18n.t('cocos-mcp.default_provider'),
+                            select_provider: Editor.I18n.t('cocos-mcp.select_provider'),
+                            request_timeout: Editor.I18n.t('cocos-mcp.request_timeout'),
+                            max_retries: Editor.I18n.t('cocos-mcp.max_retries'),
+                            default_quality: Editor.I18n.t('cocos-mcp.default_quality'),
+                            quality_low: Editor.I18n.t('cocos-mcp.quality_low'),
+                            quality_medium: Editor.I18n.t('cocos-mcp.quality_medium'),
+                            quality_high: Editor.I18n.t('cocos-mcp.quality_high'),
+                            quality_ultra: Editor.I18n.t('cocos-mcp.quality_ultra'),
+                            save_global_settings: Editor.I18n.t('cocos-mcp.save_global_settings'),
+                            edit_provider: Editor.I18n.t('cocos-mcp.edit_provider'),
+                            add_provider_title: Editor.I18n.t('cocos-mcp.add_provider_title'),
+                            provider_id: Editor.I18n.t('cocos-mcp.provider_id'),
+                            provider_name: Editor.I18n.t('cocos-mcp.provider_name'),
+                            provider_type: Editor.I18n.t('cocos-mcp.provider_type'),
+                            base_url: Editor.I18n.t('cocos-mcp.base_url'),
+                            api_key: Editor.I18n.t('cocos-mcp.api_key'),
+                            cancel: Editor.I18n.t('cocos-mcp.cancel'),
+                            update_provider: Editor.I18n.t('cocos-mcp.update_provider'),
+                            stable_diffusion: Editor.I18n.t('cocos-mcp.stable_diffusion'),
+                            automatic1111: Editor.I18n.t('cocos-mcp.automatic1111'),
+                            dall_e: Editor.I18n.t('cocos-mcp.dall_e'),
+                            custom_provider: Editor.I18n.t('cocos-mcp.custom_provider'),
+                            edit_model: Editor.I18n.t('cocos-mcp.edit_model'),
+                            add_model_title: Editor.I18n.t('cocos-mcp.add_model_title'),
+                            model_id: Editor.I18n.t('cocos-mcp.model_id'),
+                            model_name: Editor.I18n.t('cocos-mcp.model_name'),
+                            model_provider: Editor.I18n.t('cocos-mcp.model_provider'),
+                            model_type: Editor.I18n.t('cocos-mcp.model_type'),
+                            text_to_image: Editor.I18n.t('cocos-mcp.text_to_image'),
+                            image_to_image: Editor.I18n.t('cocos-mcp.image_to_image'),
+                            inpainting: Editor.I18n.t('cocos-mcp.inpainting'),
+                            outpainting: Editor.I18n.t('cocos-mcp.outpainting'),
+                            update_model: Editor.I18n.t('cocos-mcp.update_model'),
+                            add_model: Editor.I18n.t('cocos-mcp.add_model'),
+                            config_saved: Editor.I18n.t('cocos-mcp.config_saved'),
+                            config_save_failed: Editor.I18n.t('cocos-mcp.config_save_failed'),
+                            config_load_failed: Editor.I18n.t('cocos-mcp.config_load_failed'),
+                            config_exported: Editor.I18n.t('cocos-mcp.config_exported'),
+                            config_export_failed: Editor.I18n.t('cocos-mcp.config_export_failed'),
+                            config_imported: Editor.I18n.t('cocos-mcp.config_imported'),
+                            config_import_failed: Editor.I18n.t('cocos-mcp.config_import_failed'),
+                            config_reset: Editor.I18n.t('cocos-mcp.config_reset'),
+                            config_reset_failed: Editor.I18n.t('cocos-mcp.config_reset_failed'),
+                            provider_added: Editor.I18n.t('cocos-mcp.provider_added'),
+                            provider_updated: Editor.I18n.t('cocos-mcp.provider_updated'),
+                            provider_deleted: Editor.I18n.t('cocos-mcp.provider_deleted'),
+                            provider_save_failed: Editor.I18n.t('cocos-mcp.provider_save_failed'),
+                            provider_delete_failed: Editor.I18n.t('cocos-mcp.provider_delete_failed'),
+                            model_deleted: Editor.I18n.t('cocos-mcp.model_deleted'),
+                            model_save_failed: Editor.I18n.t('cocos-mcp.model_save_failed'),
+                            model_delete_failed: Editor.I18n.t('cocos-mcp.model_delete_failed'),
+                            provider_not_found: Editor.I18n.t('cocos-mcp.provider_not_found'),
+                            reset_confirm: Editor.I18n.t('cocos-mcp.reset_confirm')
+                        }
                     };
                 }, 
                 async mounted() {
@@ -101,7 +186,7 @@ module.exports = Editor.Panel.define({
                             }
                         } catch (error) {
                             console.error('Failed to load config:', error);
-                            this.showNotification('error', 'Failed to load configuration');
+                            this.showNotification('error', this.i18n.config_load_failed);
                             // Ensure we have a valid structure even on error
                             this.config.imageGeneration = {
                                 providers: [],
@@ -133,10 +218,10 @@ module.exports = Editor.Panel.define({
                             
                             console.log('Saving config:', configToSave);
                             await Editor.Message.request('cocos-mcp', 'save-image-config', configToSave);
-                            this.showNotification('success', 'Configuration saved successfully');
+                            this.showNotification('success', this.i18n.config_saved);
                         } catch (error) {
                             console.error('Failed to save config:', error);
-                            this.showNotification('error', 'Failed to save configuration');
+                            this.showNotification('error', this.i18n.config_save_failed);
                         } finally {
                             this.isLoading = false;
                         }
@@ -196,10 +281,10 @@ module.exports = Editor.Panel.define({
                             }
                             await this.saveConfig();
                             this.showProviderDialog = false;
-                            this.showNotification('success', `Provider ${this.editingProvider ? 'updated' : 'added'} successfully`);
+                            this.showNotification('success', this.editingProvider ? this.i18n.provider_updated : this.i18n.provider_added);
                         } catch (error) {
                             console.error('Failed to save provider:', error);
-                            this.showNotification('error', 'Failed to save provider');
+                            this.showNotification('error', this.i18n.provider_save_failed);
                         }
                     },
 
@@ -211,10 +296,10 @@ module.exports = Editor.Panel.define({
                                 p.models = p.models.filter((m: any) => m.providerId !== providerId);
                             });
                             await this.saveConfig();
-                            this.showNotification('success', 'Provider deleted successfully');
+                            this.showNotification('success', this.i18n.provider_deleted);
                         } catch (error) {
                             console.error('Failed to delete provider:', error);
-                            this.showNotification('error', 'Failed to delete provider');
+                            this.showNotification('error', this.i18n.provider_delete_failed);
                         }
                     },
 
@@ -275,7 +360,7 @@ module.exports = Editor.Panel.define({
                         try {
                             const provider = this.config.imageGeneration.providers.find((p: any) => p.id === this.newModel.providerId);
                             if (!provider) {
-                                this.showNotification('error', 'Provider not found');
+                                this.showNotification('error', this.i18n.provider_not_found);
                                 return;
                             }
 
@@ -302,7 +387,7 @@ module.exports = Editor.Panel.define({
                             this.showModelDialog = false;
                         } catch (error) {
                             console.error('Failed to save model:', error);
-                            this.showNotification('error', 'Failed to save model');
+                            this.showNotification('error', this.i18n.model_save_failed);
                         }
                     },
 
@@ -312,11 +397,11 @@ module.exports = Editor.Panel.define({
                             if (provider) {
                                 provider.models = provider.models.filter((m: any) => m.id !== modelId);
                                 await this.saveConfig();
-                                this.showNotification('success', 'Model deleted successfully');
+                                this.showNotification('success', this.i18n.model_deleted);
                             }
                         } catch (error) {
                             console.error('Failed to delete model:', error);
-                            this.showNotification('error', 'Failed to delete model');
+                            this.showNotification('error', this.i18n.model_delete_failed);
                         }
                     },
 
@@ -393,10 +478,10 @@ module.exports = Editor.Panel.define({
                             a.download = 'ai-config.json';
                             a.click();
                             URL.revokeObjectURL(url);
-                            this.showNotification('success', 'Configuration exported successfully');
+                            this.showNotification('success', this.i18n.config_exported);
                         } catch (error) {
                             console.error('Failed to export config:', error);
-                            this.showNotification('error', 'Failed to export configuration');
+                            this.showNotification('error', this.i18n.config_export_failed);
                         }
                     },
 
@@ -437,13 +522,13 @@ module.exports = Editor.Panel.define({
                             }
                             
                             await this.saveConfig();
-                            this.showNotification('success', 'Configuration imported successfully');
+                            this.showNotification('success', this.i18n.config_imported);
                             
                             // Reset file input
                             input.value = '';
                         } catch (error) {
                             console.error('Failed to import config:', error);
-                            this.showNotification('error', 'Failed to import configuration: ' + (error instanceof Error ? error.message : 'Invalid file format'));
+                            this.showNotification('error', this.i18n.config_import_failed + ': ' + (error instanceof Error ? error.message : 'Invalid file format'));
                             
                             // Reset file input
                             input.value = '';
@@ -451,14 +536,14 @@ module.exports = Editor.Panel.define({
                     },
 
                     async resetConfig() {
-                        if (confirm('Are you sure you want to reset the configuration to defaults? This will remove all providers and models.')) {
+                        if (confirm(this.i18n.reset_confirm)) {
                             try {
                                 await Editor.Message.request('cocos-mcp', 'reset-image-config');
                                 await this.loadConfig();
-                                this.showNotification('success', 'Configuration reset to defaults');
+                                this.showNotification('success', this.i18n.config_reset);
                             } catch (error) {
                                 console.error('Failed to reset config:', error);
-                                this.showNotification('error', 'Failed to reset configuration');
+                                this.showNotification('error', this.i18n.config_reset_failed);
                             }
                         }
                     },
@@ -489,19 +574,17 @@ module.exports = Editor.Panel.define({
                 template: `
                     <div class="ai-config-panel">
                         <div class="panel-header">
-                            <h2>🎨 AI Image Generation Configuration</h2>
+                            <h2>{{ i18n.ai_image_config }}</h2>
                             <div class="header-actions">
                                 <button @click="loadConfig()" :disabled="isLoading" class="btn btn-secondary">
-                                    <span v-if="isLoading">🔄</span>
-                                    <span v-else>🔄</span>
-                                    Refresh
+                                    🔄 {{ i18n.refresh }}
                                 </button>
-                                <button @click="exportConfig()" class="btn btn-secondary">📤 Export</button>
+                                <button @click="exportConfig()" class="btn btn-secondary">{{ i18n.export }}</button>
                                 <label class="btn btn-secondary">
-                                    📥 Import
+                                    {{ i18n.import }}
                                     <input type="file" @change="importConfig" accept=".json" style="display: none">
                                 </label>
-                                <button @click="resetConfig()" class="btn btn-danger">🔄 Reset</button>
+                                <button @click="resetConfig()" class="btn btn-danger">{{ i18n.reset }}</button>
                             </div>
                         </div>
 
@@ -513,18 +596,18 @@ module.exports = Editor.Panel.define({
                         <!-- Loading Overlay -->
                         <div v-if="isLoading" class="loading-overlay">
                             <div class="spinner"></div>
-                            <div>Loading...</div>
+                            <div>{{ i18n.loading }}</div>
                         </div>
 
                         <!-- Providers Section -->
                         <div class="section">
                             <div class="section-header">
-                                <h3>🔧 Providers</h3>
-                                <button @click="openProviderDialog()" class="btn btn-primary">+ Add Provider</button>
+                                <h3>{{ i18n.providers }}</h3>
+                                <button @click="openProviderDialog()" class="btn btn-primary">{{ i18n.add_provider }}</button>
                             </div>
                             
                             <div v-if="config.imageGeneration.providers && config.imageGeneration.providers.length === 0" class="empty-state">
-                                <p>No providers configured. Add your first AI image generation provider to get started.</p>
+                                <p>{{ i18n.no_providers }}</p>
                             </div>
                             
                             <div v-else-if="config.imageGeneration.providers && config.imageGeneration.providers.length > 0" class="providers-grid">
@@ -533,33 +616,33 @@ module.exports = Editor.Panel.define({
                                         <span class="provider-icon">{{ getProviderIcon(provider.type) }}</span>
                                         <h4>{{ provider.name }}</h4>
                                         <div class="provider-actions">
-                                            <button @click="testProvider(provider.id)" class="btn btn-sm btn-secondary">🧪 Test</button>
-                                            <button @click="openProviderDialog(provider)" class="btn btn-sm btn-secondary">✏️ Edit</button>
-                                            <button @click="deleteProvider(provider.id)" class="btn btn-sm btn-danger">🗑️ Delete</button>
+                                            <button @click="testProvider(provider.id)" class="btn btn-sm btn-secondary">{{ i18n.test }}</button>
+                                            <button @click="openProviderDialog(provider)" class="btn btn-sm btn-secondary">{{ i18n.edit }}</button>
+                                            <button @click="deleteProvider(provider.id)" class="btn btn-sm btn-danger">{{ i18n.delete }}</button>
                                         </div>
                                     </div>
                                     <div class="provider-details">
-                                        <p><strong>Type:</strong> {{ provider.type }}</p>
-                                        <p><strong>URL:</strong> {{ provider.baseUrl || provider.config?.baseUrl || 'Not configured' }}</p>
-                                        <p><strong>Models:</strong> 
+                                        <p><strong>{{ i18n.type }}:</strong> {{ provider.type }}</p>
+                                        <p><strong>{{ i18n.url }}:</strong> {{ provider.baseUrl || provider.config?.baseUrl || i18n.not_configured }}</p>
+                                        <p><strong>{{ i18n.models }}:</strong> 
                                             <span v-if="provider.models && provider.models.length > 0">
-                                                {{ provider.models.filter(m => m.enabled).length }} enabled / {{ provider.models.length }} total
+                                                {{ provider.models.filter(m => m.enabled).length }} {{ i18n.enabled }} / {{ provider.models.length }} {{ i18n.total }}
                                             </span>
                                             <span v-else>0</span>
                                         </p>
                                         <div v-if="testResults.has(provider.id)" :class="'test-result test-' + (testResults.get(provider.id).success ? 'success' : 'error')">
                                             <div class="test-summary">
-                                                {{ testResults.get(provider.id).success ? '✅ Connection successful' : '❌ Connection failed' }}
+                                                {{ testResults.get(provider.id).success ? i18n.connection_successful : i18n.connection_failed }}
                                             </div>
                                             <div v-if="testResults.get(provider.id).message" class="test-message">
                                                 {{ testResults.get(provider.id).message }}
                                             </div>
                                             <div v-if="!testResults.get(provider.id).success && testResults.get(provider.id).error" class="test-error">
-                                                <strong>Error:</strong> {{ testResults.get(provider.id).error }}
+                                                <strong>{{ i18n.error }}:</strong> {{ testResults.get(provider.id).error }}
                                             </div>
                                             <div v-if="testResults.get(provider.id).debug" class="test-debug">
                                                 <details>
-                                                    <summary>🔍 Debug Information</summary>
+                                                    <summary>{{ i18n.debug_information }}</summary>
                                                     <pre>{{ JSON.stringify(testResults.get(provider.id).debug, null, 2) }}</pre>
                                                 </details>
                                             </div>
@@ -569,16 +652,16 @@ module.exports = Editor.Panel.define({
                                     <!-- Models for this provider -->
                                     <div class="models-section">
                                         <div class="models-header">
-                                            <strong>Models:</strong>
+                                            <strong>{{ i18n.models }}:</strong>
                                             <div class="models-actions">
                                                 <button @click="fetchModels(provider)" class="btn btn-xs btn-info" :disabled="!provider.baseUrl && !provider.config?.baseUrl">
-                                                    🔄 Fetch Models
+                                                    {{ i18n.fetch_models }}
                                                 </button>
                                                 <button v-if="provider.models && provider.models.length > 0" @click="toggleAllModels(provider, true)" class="btn btn-xs btn-secondary">
-                                                    ✅ All
+                                                    {{ i18n.enable_all }}
                                                 </button>
                                                 <button v-if="provider.models && provider.models.length > 0" @click="toggleAllModels(provider, false)" class="btn btn-xs btn-secondary">
-                                                    ❌ None
+                                                    {{ i18n.disable_all }}
                                                 </button>
                                             </div>
                                         </div>
@@ -600,12 +683,12 @@ module.exports = Editor.Panel.define({
                                             </div>
                                         </div>
                                         <div v-else class="empty-models">
-                                            <p>No models available.</p>
+                                            <p>{{ i18n.no_models }}</p>
                                             <p v-if="provider.baseUrl || provider.config?.baseUrl">
-                                                Click "Fetch Models" to discover available models from your API.
+                                                {{ i18n.fetch_models_hint }}
                                             </p>
                                             <p v-else>
-                                                Configure the Base URL first, then click "Fetch Models".
+                                                {{ i18n.configure_url_hint }}
                                             </p>
                                         </div>
                                     </div>
@@ -615,75 +698,75 @@ module.exports = Editor.Panel.define({
 
                         <!-- Global Settings Section -->
                         <div class="section">
-                            <h3>⚙️ Global Settings</h3>
+                            <h3>{{ i18n.global_settings }}</h3>
                             <div class="settings-grid">
                                 <div class="setting-item">
-                                    <label>Default Provider:</label>
+                                    <label>{{ i18n.default_provider }}:</label>
                                     <select v-model="config.imageGeneration.defaultProvider">
-                                        <option value="">Select a provider...</option>
+                                        <option value="">{{ i18n.select_provider }}</option>
                                         <option v-for="provider in (config.imageGeneration.providers || [])" :key="provider.id" :value="provider.id">
                                             {{ provider.name }}
                                         </option>
                                     </select>
                                 </div>
                                 <div class="setting-item">
-                                    <label>Request Timeout (ms):</label>
+                                    <label>{{ i18n.request_timeout }}:</label>
                                     <input type="number" v-model.number="config.imageGeneration.globalSettings.timeout" min="1000" max="300000">
                                 </div>
                                 <div class="setting-item">
-                                    <label>Max Retries:</label>
+                                    <label>{{ i18n.max_retries }}:</label>
                                     <input type="number" v-model.number="config.imageGeneration.globalSettings.retries" min="0" max="10">
                                 </div>
                                 <div class="setting-item">
-                                    <label>Default Quality:</label>
+                                    <label>{{ i18n.default_quality }}:</label>
                                     <select v-model="config.imageGeneration.globalSettings.quality">
-                                        <option value="low">Low</option>
-                                        <option value="medium">Medium</option>
-                                        <option value="high">High</option>
-                                        <option value="ultra">Ultra</option>
+                                        <option value="low">{{ i18n.quality_low }}</option>
+                                        <option value="medium">{{ i18n.quality_medium }}</option>
+                                        <option value="high">{{ i18n.quality_high }}</option>
+                                        <option value="ultra">{{ i18n.quality_ultra }}</option>
                                     </select>
                                 </div>
                             </div>
-                            <button @click="saveConfig()" class="btn btn-primary">💾 Save Global Settings</button>
+                            <button @click="saveConfig()" class="btn btn-primary">{{ i18n.save_global_settings }}</button>
                         </div>
 
                         <!-- Provider Dialog -->
                         <div v-if="showProviderDialog" class="dialog-overlay" @click="showProviderDialog = false">
                             <div class="dialog" @click.stop>
                                 <div class="dialog-header">
-                                    <h3>{{ editingProvider ? 'Edit' : 'Add' }} Provider</h3>
+                                    <h3>{{ editingProvider ? i18n.edit_provider : i18n.add_provider_title }}</h3>
                                     <button @click="showProviderDialog = false" class="btn btn-sm btn-secondary">✕</button>
                                 </div>
                                 <div class="dialog-body">
                                     <div class="form-group">
-                                        <label>Provider ID:</label>
+                                        <label>{{ i18n.provider_id }}:</label>
                                         <input type="text" v-model="newProvider.id" :disabled="!!editingProvider" placeholder="unique-provider-id">
                                     </div>
                                     <div class="form-group">
-                                        <label>Name:</label>
+                                        <label>{{ i18n.provider_name }}:</label>
                                         <input type="text" v-model="newProvider.name" placeholder="Provider Name">
                                     </div>
                                     <div class="form-group">
-                                        <label>Type:</label>
+                                        <label>{{ i18n.provider_type }}:</label>
                                         <select v-model="newProvider.type">
-                                            <option value="stable-diffusion">Stable Diffusion</option>
-                                            <option value="automatic1111">AUTOMATIC1111</option>
-                                            <option value="dall-e">OpenAI DALL-E</option>
-                                            <option value="custom">Custom Provider</option>
+                                            <option value="stable-diffusion">{{ i18n.stable_diffusion }}</option>
+                                            <option value="automatic1111">{{ i18n.automatic1111 }}</option>
+                                            <option value="dall-e">{{ i18n.dall_e }}</option>
+                                            <option value="custom">{{ i18n.custom_provider }}</option>
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label>Base URL:</label>
+                                        <label>{{ i18n.base_url }}:</label>
                                         <input type="url" v-model="newProvider.baseUrl" placeholder="https://api.provider.com">
                                     </div>
                                     <div class="form-group">
-                                        <label>API Key:</label>
-                                        <input type="password" v-model="newProvider.apiKey" placeholder="API Key (optional)">
+                                        <label>{{ i18n.api_key }}:</label>
+                                        <input type="password" v-model="newProvider.apiKey" placeholder="API Key">
                                     </div>
                                 </div>
                                 <div class="dialog-footer">
-                                    <button @click="showProviderDialog = false" class="btn btn-secondary">Cancel</button>
-                                    <button @click="saveProvider()" class="btn btn-primary">{{ editingProvider ? 'Update' : 'Add' }} Provider</button>
+                                    <button @click="showProviderDialog = false" class="btn btn-secondary">{{ i18n.cancel }}</button>
+                                    <button @click="saveProvider()" class="btn btn-primary">{{ editingProvider ? i18n.update_provider : i18n.add_provider_title }}</button>
                                 </div>
                             </div>
                         </div>
@@ -692,20 +775,20 @@ module.exports = Editor.Panel.define({
                         <div v-if="showModelDialog" class="dialog-overlay" @click="showModelDialog = false">
                             <div class="dialog" @click.stop>
                                 <div class="dialog-header">
-                                    <h3>{{ editingModel ? 'Edit' : 'Add' }} Model</h3>
+                                    <h3>{{ editingModel ? i18n.edit_model : i18n.add_model_title }}</h3>
                                     <button @click="showModelDialog = false" class="btn btn-sm btn-secondary">✕</button>
                                 </div>
                                 <div class="dialog-body">
                                     <div class="form-group">
-                                        <label>Model ID:</label>
+                                        <label>{{ i18n.model_id }}:</label>
                                         <input type="text" v-model="newModel.id" :disabled="!!editingModel" placeholder="model-identifier">
                                     </div>
                                     <div class="form-group">
-                                        <label>Name:</label>
+                                        <label>{{ i18n.model_name }}:</label>
                                         <input type="text" v-model="newModel.name" placeholder="Model Display Name">
                                     </div>
                                     <div class="form-group">
-                                        <label>Provider:</label>
+                                        <label>{{ i18n.model_provider }}:</label>
                                         <select v-model="newModel.providerId" :disabled="!!editingModel">
                                             <option v-for="provider in (config.imageGeneration.providers || [])" :key="provider.id" :value="provider.id">
                                                 {{ provider.name }}
@@ -713,18 +796,18 @@ module.exports = Editor.Panel.define({
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label>Type:</label>
+                                        <label>{{ i18n.model_type }}:</label>
                                         <select v-model="newModel.type">
-                                            <option value="text2img">Text to Image</option>
-                                            <option value="img2img">Image to Image</option>
-                                            <option value="inpainting">Inpainting</option>
-                                            <option value="outpainting">Outpainting</option>
+                                            <option value="text2img">{{ i18n.text_to_image }}</option>
+                                            <option value="img2img">{{ i18n.image_to_image }}</option>
+                                            <option value="inpainting">{{ i18n.inpainting }}</option>
+                                            <option value="outpainting">{{ i18n.outpainting }}</option>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="dialog-footer">
-                                    <button @click="showModelDialog = false" class="btn btn-secondary">Cancel</button>
-                                    <button @click="saveModel()" class="btn btn-primary">{{ editingModel ? 'Update' : 'Add' }} Model</button>
+                                    <button @click="showModelDialog = false" class="btn btn-secondary">{{ i18n.cancel }}</button>
+                                    <button @click="saveModel()" class="btn btn-primary">{{ editingModel ? i18n.update_model : i18n.add_model }}</button>
                                 </div>
                             </div>
                         </div>
