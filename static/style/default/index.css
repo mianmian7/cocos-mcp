@@ -78,12 +78,12 @@
 
 .status-indicator.running {
     background-color: var(--color-success-fill);
-    color: var(--color-success-contrast-strongest);
+    color: #fff;
 }
 
 .status-indicator.stopped {
     background-color: var(--color-danger-fill);
-    color: var(--color-danger-contrast-strongest);
+    color: #fff;
 }
 
 .server-config {
@@ -300,6 +300,6 @@
 }
 
 .quick-copy-btn.copied {
-    background-color: var(--color-success-fill);
-    color: var(--color-success-contrast-strongest);
+    background-color: var(--color-success-fill) !important;
+    color: #fff !important;
 }
