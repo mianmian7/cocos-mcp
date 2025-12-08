@@ -30,6 +30,22 @@ async function getServerManager() {
  */
 export const load: () => void = function () {
     console.log('MCP Extension loaded');
+
+    // 检查是否需要自动启动MCP服务器
+    (async () => {
+        try {
+            const manager = await getServerManager();
+            const info = manager.getServerInfo();
+
+            if (info.config.autoStart && !info.isRunning) {
+                console.log('Auto-starting MCP server...');
+                await manager.startServer();
+                console.log('MCP server auto-started successfully');
+            }
+        } catch (error) {
+            console.error('Failed to auto-start MCP server:', error);
+        }
+    })();
 };
 
 /**
@@ -210,7 +226,7 @@ export const methods: Record<string, (...args: any[]) => any> = {
                 config: {
                     port: 3000,
                     name: "cocos-mcp-server",
-                    version: "1.0.1",
+                    version: "1.0.2",
                     tools: {
                         createNodes: true,
                         modifyNodes: true,

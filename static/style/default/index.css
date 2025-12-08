@@ -120,6 +120,31 @@
     text-align: center;
 }
 
+/* Auto-start configuration item */
+.auto-start-item {
+    grid-column: 1 / -1;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 15px;
+    background-color: var(--color-normal-fill-emphasis);
+    border-radius: 6px;
+    border: 1px solid var(--color-normal-border);
+    margin-top: 10px;
+}
+
+.auto-start-item label {
+    text-transform: none;
+    font-size: 14px;
+    margin: 0;
+}
+
+.auto-start-hint {
+    color: var(--color-normal-contrast-weaker);
+    font-size: 12px;
+    font-style: italic;
+}
+
 .tools-config {
     margin-bottom: 20px;
 }
