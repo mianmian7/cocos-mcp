@@ -30,43 +30,18 @@ jobs:
       - name: Build extension
         run: npm run build
 
-      - name: Package build bundle (with node_modules)
-        run: |
-          zip -r cocos-mcp-build.zip \
-            dist \
-            i18n \
-            static \
-            node_modules \
-            package.json \
-            package-lock.json \
-            tsconfig.json \
-            base.tsconfig.json \
-            README.md
-
       - name: Upload build artifacts
+        if: ${{ github.event_name != 'pull_request' }}
         uses: actions/upload-artifact@v4
         with:
           name: cocos-mcp-build
-          path: cocos-mcp-build.zip
+          path: |
+            dist/**
+            i18n/**
+            static/**
+            package.json
+            package-lock.json
+            tsconfig.json
+            base.tsconfig.json
+            README.md
           retention-days: 7
-
-  release:
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: cocos-mcp-build
-
-      - name: Publish release with bundled artifact
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: build-${{ github.run_number }}
-          name: Build ${{ github.run_number }}
-          body: |
-            Automated build bundle including dependencies (node_modules) for direct usage.
-          files: cocos-mcp-build.zip
