@@ -229,31 +229,112 @@ export async function setProperties(
             }
 
             // Handle array properties
-            if (Array.isArray(propertyValue)) {
-                processedValue = [];
-                for (let value of propertyValue) {
-                    const processedArrayValue = await preprocessProperty(value);
-                    processedValue.push({
-                        type: prop.propertyType,
-                        value: processedArrayValue
+            const fullPath = pathPrefix ? `${pathPrefix}.${prop.propertyPath}` : prop.propertyPath;
+            const isArrayProperty = Array.isArray(propertyValue);
+
+            if (isArrayProperty) {
+                // For array properties, we need to set elements individually
+                // This is more reliable than setting the entire array at once
+                // because Cocos Creator's set-property API has specific requirements for arrays
+
+                // First, try to get the current property info to understand the array structure
+                let arraySetSuccess = false;
+                let arraySetError: string | undefined;
+
+                // Strategy 1: Try setting elements one by one (most reliable)
+                try {
+                    // Process each array element
+                    for (let i = 0; i < propertyValue.length; i++) {
+                        const elementValue = propertyValue[i];
+                        const processedElementValue = await preprocessProperty(elementValue);
+                        const elementPath = `${fullPath}.${i}`;
+
+                        await Editor.Message.request('scene', 'set-property', {
+                            uuid: targetNodeUuid,
+                            path: elementPath,
+                            dump: {
+                                value: processedElementValue,
+                                type: prop.propertyType
+                            }
+                        } as any);
+                    }
+                    arraySetSuccess = true;
+                } catch (elementSetError) {
+                    arraySetError = `Element-by-element setting failed: ${elementSetError instanceof Error ? elementSetError.message : String(elementSetError)}`;
+
+                    // Strategy 2: Try setting the entire array with isArray flag
+                    try {
+                        processedValue = [];
+                        for (let value of propertyValue) {
+                            const processedArrayValue = await preprocessProperty(value);
+                            // For array elements, wrap in IProperty-like structure
+                            processedValue.push({
+                                value: processedArrayValue,
+                                type: prop.propertyType
+                            });
+                        }
+
+                        await Editor.Message.request('scene', 'set-property', {
+                            uuid: targetNodeUuid,
+                            path: fullPath,
+                            dump: {
+                                value: processedValue,
+                                type: prop.propertyType,
+                                isArray: true
+                            }
+                        } as any);
+                        arraySetSuccess = true;
+                        arraySetError = undefined;
+                    } catch (wholeArrayError) {
+                        // Strategy 3: Try with raw values (no wrapping)
+                        try {
+                            processedValue = [];
+                            for (let value of propertyValue) {
+                                const processedArrayValue = await preprocessProperty(value);
+                                processedValue.push(processedArrayValue);
+                            }
+
+                            await Editor.Message.request('scene', 'set-property', {
+                                uuid: targetNodeUuid,
+                                path: fullPath,
+                                dump: {
+                                    value: processedValue,
+                                    type: prop.propertyType,
+                                    isArray: true
+                                }
+                            } as any);
+                            arraySetSuccess = true;
+                            arraySetError = undefined;
+                        } catch (rawArrayError) {
+                            arraySetError = `All array setting strategies failed. Last error: ${rawArrayError instanceof Error ? rawArrayError.message : String(rawArrayError)}`;
+                        }
+                    }
+                }
+
+                if (arraySetSuccess) {
+                    results.push({ propertyPath: prop.propertyPath, success: true });
+                } else {
+                    results.push({
+                        propertyPath: prop.propertyPath,
+                        success: false,
+                        error: arraySetError || 'Unknown array setting error'
                     });
                 }
             } else {
+                // Non-array property
                 processedValue = await preprocessProperty(propertyValue);
+
+                await Editor.Message.request('scene', 'set-property', {
+                    uuid: targetNodeUuid,
+                    path: fullPath,
+                    dump: {
+                        value: processedValue,
+                        type: prop.propertyType
+                    }
+                } as any);
+
+                results.push({ propertyPath: prop.propertyPath, success: true });
             }
-
-            // Set the property
-            const fullPath = pathPrefix ? `${pathPrefix}.${prop.propertyPath}` : prop.propertyPath;
-            await Editor.Message.request('scene', 'set-property', {
-                uuid: targetNodeUuid,
-                path: fullPath,
-                dump: {
-                    value: processedValue,
-                    type: prop.propertyType
-                }
-            } as any);
-
-            results.push({ propertyPath: prop.propertyPath, success: true });
 
         } catch (error) {
             results.push({
