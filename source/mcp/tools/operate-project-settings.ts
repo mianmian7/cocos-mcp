@@ -172,7 +172,12 @@ export function registerOperateProjectSettingsTool(server: McpServer): void {
             // Parse collision matrix from bitmask array to input format
             const parsedCollisionMatrix = [];
             for (let groupId in collisionMatrix) {
-              const bitmask = collisionMatrix[groupId];
+              const groupIndex = Number(groupId);
+              if (Number.isNaN(groupIndex)) {
+                continue;
+              }
+
+              const bitmask = collisionMatrix[groupIndex];
               if (bitmask !== undefined) {
                 const collidesWith = [];
                 // Decode bitmask to get collision group IDs
@@ -183,7 +188,7 @@ export function registerOperateProjectSettingsTool(server: McpServer): void {
                 }
                 if (collidesWith.length > 0) {
                   parsedCollisionMatrix.push({
-                    groupId: groupId,
+                    groupId: groupIndex,
                     collidesWith: collidesWith
                   });
                 }
