@@ -37,24 +37,29 @@ jobs:
         run: npm run build
 
       # 2) 生成可分发目录，并在里面安装 production node_modules
+      - name: Prune to production dependencies
+        if: ${{ github.event_name != 'pull_request' }}
+        run: npm prune --omit=dev --omit=optional --no-audit --no-fund
+
       - name: Prepare distributable bundle (with node_modules, slim)
         if: ${{ github.event_name != 'pull_request' }}
         run: |
           rm -rf release-bundle
           mkdir -p release-bundle
 
-          # 你的扩展需要的内容
-          cp -r dist i18n static release-bundle/
+          for d in dist i18n static; do
+            if [ -d "$d" ]; then cp -r "$d" release-bundle/; fi
+          done
+
           cp package.json package-lock.json tsconfig.json base.tsconfig.json README.md release-bundle/
+          # 直接拷贝已经 prune 过的 node_modules
+          cp -r node_modules release-bundle/
 
-          # 在 bundle 内安装【仅生产依赖】并尽量减小体积
+          # 瘦身：删非运行时文件
           cd release-bundle
-          npm ci --omit=dev --omit=optional --no-audit --no-fund
 
-          # 可选：进一步去重（不一定每次都能减少，但通常有帮助）
           npm dedupe --omit=dev --omit=optional || true
 
-          # 删除常见“非运行时”目录（更安全：不碰 src/lib 等目录）
           find node_modules -type d \( \
             -name "test" -o -name "tests" -o -name "__tests__" -o \
             -name "docs" -o -name "doc" -o \
@@ -62,25 +67,22 @@ jobs:
             -name ".github" -o -name "coverage" \
           \) -prune -exec rm -rf {} + || true
 
-          # 删除 sourcemap / markdown 文档 / changelog 等（一般不影响运行）
           find node_modules -type f \( \
             -name "*.map" -o \
             -name "*.md" -o -name "*.markdown" -o \
             -iname "readme*" -o -iname "changelog*" -o -iname "history*" \
           \) -delete || true
 
-          # 删除 TS 类型声明（纯运行时通常不需要；如果你依赖类型文件做运行时逻辑就别删）
           find node_modules -type f -name "*.d.ts" -delete || true
-
           cd ..
 
-          # zip 用最高压缩率 -9
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             ZIP_NAME="cocos-mcp-${GITHUB_REF_NAME}.zip"
           else
             ZIP_NAME="cocos-mcp-${GITHUB_SHA}.zip"
           fi
           (cd release-bundle && zip -r -9 "../${ZIP_NAME}" .)
+
 
 
       # 3a) 非 PR 的 main 构建：上传 zip 作为 artifact
