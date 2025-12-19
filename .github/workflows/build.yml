@@ -1,13 +1,18 @@
-name: Build
+name: Build & Release
 
 on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
   pull_request:
     branches:
       - main
   workflow_dispatch:
+
+permissions:
+  contents: write  # 创建 Release 必需（tag 时用）
 
 jobs:
   build:
@@ -24,24 +29,73 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      # 1) 用完整依赖构建（含 devDependencies）
       - name: Install dependencies
         run: npm ci
 
-      - name: Build extension
+      - name: Build
         run: npm run build
 
-      - name: Upload build artifacts
+      # 2) 生成可分发目录，并在里面安装 production node_modules
+      - name: Prepare distributable bundle (with node_modules, slim)
         if: ${{ github.event_name != 'pull_request' }}
+        run: |
+          rm -rf release-bundle
+          mkdir -p release-bundle
+
+          # 你的扩展需要的内容
+          cp -r dist i18n static release-bundle/
+          cp package.json package-lock.json tsconfig.json base.tsconfig.json README.md release-bundle/
+
+          # 在 bundle 内安装【仅生产依赖】并尽量减小体积
+          cd release-bundle
+          npm ci --omit=dev --omit=optional --no-audit --no-fund
+
+          # 可选：进一步去重（不一定每次都能减少，但通常有帮助）
+          npm dedupe --omit=dev --omit=optional || true
+
+          # 删除常见“非运行时”目录（更安全：不碰 src/lib 等目录）
+          find node_modules -type d \( \
+            -name "test" -o -name "tests" -o -name "__tests__" -o \
+            -name "docs" -o -name "doc" -o \
+            -name "example" -o -name "examples" -o \
+            -name ".github" -o -name "coverage" \
+          \) -prune -exec rm -rf {} + || true
+
+          # 删除 sourcemap / markdown 文档 / changelog 等（一般不影响运行）
+          find node_modules -type f \( \
+            -name "*.map" -o \
+            -name "*.md" -o -name "*.markdown" -o \
+            -iname "readme*" -o -iname "changelog*" -o -iname "history*" \
+          \) -delete || true
+
+          # 删除 TS 类型声明（纯运行时通常不需要；如果你依赖类型文件做运行时逻辑就别删）
+          find node_modules -type f -name "*.d.ts" -delete || true
+
+          cd ..
+
+          # zip 用最高压缩率 -9
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            ZIP_NAME="cocos-mcp-${GITHUB_REF_NAME}.zip"
+          else
+            ZIP_NAME="cocos-mcp-${GITHUB_SHA}.zip"
+          fi
+          (cd release-bundle && zip -r -9 "../${ZIP_NAME}" .)
+
+
+      # 3a) 非 PR 的 main 构建：上传 zip 作为 artifact
+      - name: Upload build artifact (zip)
+        if: ${{ github.event_name != 'pull_request' && !startsWith(github.ref, 'refs/tags/') }}
         uses: actions/upload-artifact@v4
         with:
           name: cocos-mcp-build
-          path: |
-            dist/**
-            i18n/**
-            static/**
-            package.json
-            package-lock.json
-            tsconfig.json
-            base.tsconfig.json
-            README.md
+          path: cocos-mcp-${{ github.sha }}.zip
           retention-days: 7
+
+      # 3b) tag 构建：创建 GitHub Release 并上传 zip
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: cocos-mcp-${{ github.ref_name }}.zip
+          generate_release_notes: true
