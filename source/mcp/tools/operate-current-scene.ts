@@ -11,7 +11,9 @@ export function registerOperateCurrentSceneTool(server: McpServer): void {
     "operate_current_scene",
     {
       title: "Operations with currently opened scene",
-      description: "Scene operations: open, save, inspect, get/set properties, retrieve logs. Log retrieval prioritizes project log file over scene buffer.",
+      description: `Scene operations: open, save, inspect, get/set properties, retrieve logs. Log retrieval prioritizes project log file over scene buffer.
+
+**For inspect-hierarchy:** Use maxDepth to limit data returned. Start with low values (1-3) to explore structure, then drill deeper as needed. Consider using query_nodes tool for more granular control.`,
       inputSchema: {
         operation: z.enum(["open", "save", "inspect-hierarchy", "get-properties", "set-properties", "get-last-logs"]),
         sceneToOpenUrlOrUuid: z.string().describe("UUID or URL to open (for 'open' operation)").optional(),
@@ -21,10 +23,11 @@ export function registerOperateCurrentSceneTool(server: McpServer): void {
           propertyType: z.string().describe("Property type (e.g., 'cc.Color', 'String', 'Number')"),
           propertyValue: z.unknown().describe("Property value to set")
         })).describe("Properties to set (for 'set-properties' operation)").default([]),
-        lastLogsCount: z.number().int().max(500).optional().describe("Number of last logs to retrieve (for 'get-last-logs' operation, max 500)")
+        lastLogsCount: z.number().int().max(500).optional().describe("Number of last logs to retrieve (for 'get-last-logs' operation, max 500)"),
+        maxDepth: z.number().default(2).describe("Hierarchy depth limit for 'inspect-hierarchy'. DO NOT specify unless you need deeper than 2 levels.")
       }
     },
-    async ({ operation, sceneToOpenUrlOrUuid, includeTooltips, properties, lastLogsCount }) => {
+    async ({ operation, sceneToOpenUrlOrUuid, includeTooltips, properties, lastLogsCount, maxDepth }) => {
       try {
         switch (operation) {
           case "open": {
@@ -108,8 +111,8 @@ export function registerOperateCurrentSceneTool(server: McpServer): void {
               };
             }
 
-            // Build hierarchy tree recursively
-            const buildHierarchy = (node: any): any => {
+            // Build hierarchy tree recursively with depth limit
+            const buildHierarchy = (node: any, currentDepth: number = 0): any => {
               const result: any = {
                 name: node.name?.value || node.name || "Unnamed Node",
                 uuid: McpServerManager.encodeUuid(node.uuid?.value || node.uuid),
@@ -123,10 +126,11 @@ export function registerOperateCurrentSceneTool(server: McpServer): void {
                 }));
               }
 
-              // Add children recursively
-              if ((node.children && node.children.length > 0) || (node.__children__ && node.__children__.length > 0)) {
+              // Add children recursively if within depth limit
+              const shouldIncludeChildren = currentDepth < maxDepth;
+              if (shouldIncludeChildren && ((node.children && node.children.length > 0) || (node.__children__ && node.__children__.length > 0))) {
                 const children = node.children || node.__children__;
-                result.children = children.map((child: any) => buildHierarchy(child));
+                result.children = children.map((child: any) => buildHierarchy(child, currentDepth + 1));
               }
 
               return result;

@@ -8,13 +8,19 @@ export function registerQueryNodesTool(server: McpServer): void {
     "query_nodes",
     {
       title: "Query Node Hierarchy",
-      description: "Inspects node hierarchy with configurable detail levels and depth limits.",
+      description: `Inspects node hierarchy with configurable detail levels and depth limits.
+
+**Best Practices to avoid excessive data:**
+- Start with low maxDepth (1-3) to understand overall structure
+- Use nodeUuid to drill into specific branches after getting their UUIDs
+- Only enable includeComponents/includeProperties when needed
+- For large scenes, query specific nodes rather than entire hierarchy`,
       inputSchema: {
         nodeUuid: z.string().optional().describe("Node UUID (defaults to scene root)"),
         includeProperties: z.boolean().default(false).describe("Include transform properties"),
         includeComponents: z.boolean().default(false).describe("Include component list"),
         includeComponentProperties: z.boolean().default(false).describe("Include component details"),
-        maxDepth: z.number().optional().describe("Hierarchy depth limit"),
+        maxDepth: z.number().default(2).describe("Hierarchy depth limit. DO NOT specify unless you need deeper than 2 levels. Default 2 is sufficient for initial exploration."),
       }
     },
     async (args) => {
