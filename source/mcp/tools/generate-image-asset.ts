@@ -29,7 +29,7 @@ export function registerGenerateImageAssetTool(server: McpServer, serverManagerI
   
   if (hasAIGeneration) {
     // Full functionality: SVG-only, AI-only, and AI with SVG template
-    const description = "Generates image assets using three distinct modes: 1) SVG/emoji as standalone image (provide only 'svgContent'), 2) AI generation from text prompt (provide only 'prompt'), 3) AI generation using SVG as template (provide both 'svgContent' and 'prompt'). Supports optional background removal for creating transparent icons (works best with light backgrounds).";
+    const description = "Generate images from SVG/emoji or AI prompt. Supports background removal. See ai-image-gen skill.";
     toolRegistration = {
       title: "Generate Image Asset",
       description: description,
@@ -53,7 +53,7 @@ export function registerGenerateImageAssetTool(server: McpServer, serverManagerI
     };
   } else {
     // SVG-only functionality
-    const description = "Generates image assets from SVG markup content or emoji symbols.";
+    const description = "Generate images from SVG or emoji. See ai-image-gen skill.";
     toolRegistration = {
       title: "Generate Image Asset",
       description: description,

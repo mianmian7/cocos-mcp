@@ -57,3 +57,12 @@ jspm_packages/
 
 # dotenv environment variables file
 .env
+
+# AI coding tools
+.ace-tool/
+
+# Build artifacts
+*.zip
+
+# Windows null device file
+nul

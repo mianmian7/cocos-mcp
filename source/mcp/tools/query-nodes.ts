@@ -8,13 +8,7 @@ export function registerQueryNodesTool(server: McpServer): void {
     "query_nodes",
     {
       title: "Query Node Hierarchy",
-      description: `Inspects node hierarchy with configurable detail levels and depth limits.
-
-**Best Practices to avoid excessive data:**
-- Start with low maxDepth (1-3) to understand overall structure
-- Use nodeUuid to drill into specific branches after getting their UUIDs
-- Only enable includeComponents/includeProperties when needed
-- For large scenes, query specific nodes rather than entire hierarchy`,
+      description: "Query scene node hierarchy. Use maxDepth=1-2 for overview, nodeUuid for specific branches. See cocos-mcp skill.",
       inputSchema: {
         nodeUuid: z.string().optional().describe("Node UUID (defaults to scene root)"),
         includeProperties: z.boolean().default(false).describe("Include transform properties"),

@@ -8,7 +8,7 @@ export function registerGetAvailableComponentTypesTool(server: McpServer): void 
     "get_available_component_types",
     {
       title: "Get Available Component Types",
-      description: "Get available component types",
+      description: "List all component types. Use before adding components.",
       inputSchema: {
         nameFilter: z.string().optional().describe("Optional substring to filter component types")
       }

@@ -8,7 +8,7 @@ export function registerGetAvailableAssetTypesTool(server: McpServer): void {
     "get_available_asset_types",
     {
       title: "Get Available Asset Types",
-      description: "Get available asset types",
+      description: "List all asset types. Use before creating assets.",
       inputSchema: {
         // No input parameters needed
       }

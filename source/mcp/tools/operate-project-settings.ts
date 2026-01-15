@@ -8,7 +8,7 @@ export function registerOperateProjectSettingsTool(server: McpServer): void {
     "operate_project_settings",
     {
       title: "Operate Project Settings",
-      description: "Get/set project settings",
+      description: "Get/set layers, collision matrix, resolution. See cocos-mcp skill.",
       inputSchema: {
         designResolution: z.object({ 
           width: z.number().int(), 

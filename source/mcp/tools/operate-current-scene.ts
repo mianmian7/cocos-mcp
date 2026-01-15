@@ -11,9 +11,7 @@ export function registerOperateCurrentSceneTool(server: McpServer): void {
     "operate_current_scene",
     {
       title: "Operations with currently opened scene",
-      description: `Scene operations: open, save, inspect, get/set properties, retrieve logs. Log retrieval prioritizes project log file over scene buffer.
-
-**For inspect-hierarchy:** Use maxDepth to limit data returned. Start with low values (1-3) to explore structure, then drill deeper as needed. Consider using query_nodes tool for more granular control.`,
+      description: "Scene ops: open, save, inspect, get/set properties. See cocos-mcp skill.",
       inputSchema: {
         operation: z.enum(["open", "save", "inspect-hierarchy", "get-properties", "set-properties", "get-last-logs"]),
         sceneToOpenUrlOrUuid: z.string().describe("UUID or URL to open (for 'open' operation)").optional(),

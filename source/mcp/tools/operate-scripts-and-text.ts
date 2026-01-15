@@ -808,7 +808,7 @@ export function registerOperateScriptsAndTextTool(server: McpServer): void {
     "operate_scripts_and_text",
     {
       title: "Advanced File Operations",
-      description: "File operations: read, write, search, replace text.",
+      description: "File ops: read, write, search, replace. See cocos-mcp skill.",
       inputSchema: {
         operation: z.enum(["read", "write", "search", "replace", "info"]).describe("File operation type"),
         urlOrUuid: z.string().describe("Asset UUID or db:// format URL"),

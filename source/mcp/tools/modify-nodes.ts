@@ -17,7 +17,7 @@ export function registerModifyNodesTool(server: McpServer): void {
     "modify_nodes",
     {
       title: "Modify Multiple Nodes",
-      description: "Modifies existing nodes properties, hierarchy, and components. Each node is configured individually for maximum control.",
+      description: "Batch modify nodes: transform, hierarchy, add/remove components, delete. See cocos-mcp skill.",
       inputSchema: {
         nodes: z.array(z.object({
           uuid: z.string().describe("Required: target node UUID"),

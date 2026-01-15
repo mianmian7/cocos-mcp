@@ -8,7 +8,7 @@ export function registerNodeLinkedPrefabsOperationsTool(server: McpServer): void
     "node_linked_prefabs_operations",
     {
       title: "Node Linked Prefab Operations",
-      description: "Performs prefab-related actions: edit, unwrap, locate, reset, update.",
+      description: "Prefab instance ops: edit, unwrap, reset, update. See cocos-mcp skill.",
       inputSchema: {
         nodeUuid: z.string().describe("UUID of the node linked to a prefab"),
         operation: z.enum(["edit-prefab", "unwrap", "unwrap-completely", "locate", "reset", "update-prefab"])

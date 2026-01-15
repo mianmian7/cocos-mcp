@@ -8,7 +8,7 @@ export function registerQueryComponentsTool(server: McpServer): void {
     "query_components",
     {
       title: "Query Component Properties",
-      description: "Returns component property details with types, values, and tooltips.",
+      description: "Get component property details (types, values, tooltips). See cocos-mcp skill.",
       inputSchema: {
         componentUuids: z.array(z.string()).describe("Array of component UUIDs to query"),
         includeTooltips: z.boolean().default(false).describe("Get property descriptions/tooltips"),

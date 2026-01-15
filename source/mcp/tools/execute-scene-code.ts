@@ -157,7 +157,7 @@ export function registerExecuteSceneCodeTool(server: McpServer): void {
     "execute_scene_code",
     {
       title: "Execute Code in Scene Context",
-      description: "Execute TypeScript/JavaScript code in Cocos Creator scene context. Can modify scene state.",
+      description: "Execute JS/TS code in scene context. Advanced use only. See cocos-mcp skill.",
       inputSchema: {
         code: z.string(),
         returnResult: z.boolean().optional().default(false).describe("Capture execution result"),

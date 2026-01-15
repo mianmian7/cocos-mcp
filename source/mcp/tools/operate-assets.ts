@@ -110,7 +110,7 @@ export function registerOperateAssetsTool(server: McpServer): void {
     "operate_assets",
     {
       title: "Operate Assets",
-      description: "Batch asset operations: create, copy, move, delete, get/set properties.",
+      description: "Batch asset ops: create, copy, move, delete, get/set properties. See cocos-mcp skill.",
       inputSchema: {
         operation: z.enum(["create", "copy", "delete", "move", "get-properties", "set-properties"]),
         operationOptions: z.array(z.object({

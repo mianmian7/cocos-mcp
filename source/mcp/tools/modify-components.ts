@@ -8,7 +8,7 @@ export function registerModifyComponentsTool(server: McpServer): void {
     "modify_components",
     {
       title: "Modify Component Properties",
-      description: "Updates/removes components using UUID targeting. Safe for nodes with multiple same-type components.",
+      description: "Update component properties by UUID. Use query_components to get property paths. See cocos-mcp skill.",
       inputSchema: {
         components: z.array(z.object({
           uuid: z.string().describe("Required: specific component UUID"),
