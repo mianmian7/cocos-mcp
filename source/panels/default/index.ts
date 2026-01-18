@@ -244,7 +244,7 @@ module.exports = Editor.Panel.define({
                     },
 
                     copyClaudeCode() {
-                        const cmd = `claude mcp add --transport http cocos-creator http://127.0.0.1:${this.config.port}/mcp`;
+                        const cmd = `claude mcp add --transport http --scope user cocos-creator http://127.0.0.1:${this.config.port}/mcp`;
                         this.copyToClipboard(cmd, 'claude');
                     },
 
