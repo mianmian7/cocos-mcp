@@ -148,15 +148,15 @@ export const DEFAULT_TOOL_CONFIG: McpServerToolConfig = {
   // File system tools (disabled by default for security)
   operateScriptsAndText: false,
   
-  // Code execution tools (disabled by default for security)
-  executeSceneCode: false,
+  // Code execution tools (enabled by default for AI programming workflows)
+  executeSceneCode: true,
 };
 
 export const DEFAULT_SERVER_CONFIG: McpServerConfig = {
   port: 3000,
   name: "cocos-mcp-server",
   version: "1.0.2",
-  autoStart: false,  // 默认不自动启动，让用户主动选择开启
+  autoStart: true,  // 默认自动启动，提升开发体验
   tools: DEFAULT_TOOL_CONFIG,
   imageGeneration: DEFAULT_IMAGE_GENERATION_CONFIG
 };

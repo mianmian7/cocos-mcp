@@ -430,16 +430,53 @@ export class McpServerManager {
         }
       });
 
-      // Create and start HTTP server
+      // Create and start HTTP server with automatic port detection
       this.httpServer = createServer(this.expressApp);
-      
-      await new Promise<void>((resolve, reject) => {
-        this.httpServer!.listen(this.config.port, () => {
-          resolve();
-        }).on('error', (error) => {
-          reject(error);
-        });
-      });
+
+      // Try to start server, auto-increment port if in use
+      const maxRetries = 10;
+      let currentPort = this.config.port;
+      let started = false;
+
+      for (let attempt = 0; attempt < maxRetries && !started; attempt++) {
+        try {
+          await new Promise<void>((resolve, reject) => {
+            this.httpServer!.once('error', (error: NodeJS.ErrnoException) => {
+              if (error.code === 'EADDRINUSE') {
+                console.warn(`Port ${currentPort} is in use, trying ${currentPort + 1}...`);
+                currentPort++;
+                resolve(); // Continue to next attempt
+              } else {
+                reject(error);
+              }
+            });
+
+            this.httpServer!.listen(currentPort, () => {
+              started = true;
+              resolve();
+            });
+          });
+
+          if (!started) {
+            // Need to create a new server instance for retry
+            this.httpServer.close();
+            this.httpServer = createServer(this.expressApp);
+          }
+        } catch (error) {
+          throw error;
+        }
+      }
+
+      if (!started) {
+        throw new Error(`Failed to find available port after ${maxRetries} attempts`);
+      }
+
+      // Update config with actual port if changed
+      if (currentPort !== this.config.port) {
+        console.log(`Port changed from ${this.config.port} to ${currentPort}`);
+        this.config.port = currentPort;
+        this.configStorage.saveConfig(this.config);
+      }
 
       this.isRunning = true;
       console.log(`MCP server started on port ${this.config.port}`);

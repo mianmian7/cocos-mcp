@@ -1,6 +1,7 @@
 import { ExecuteSceneScriptMethodOptions } from '@cocos/creator-types/editor/packages/scene/@types/public';
 import packageJSON from '../package.json';
 import { DEFAULT_IMAGE_GENERATION_CONFIG } from './mcp/config.js';
+import { ConfigStorage } from './mcp/config-storage.js';
 
 // Try importing the server manager
 let McpServerManager: any = null;
@@ -31,6 +32,15 @@ async function getServerManager() {
  */
 export const load: () => void = function () {
     console.log('MCP Extension loaded');
+
+    // Ensure .mcp.json exists for AI client configuration
+    try {
+        const configStorage = new ConfigStorage();
+        configStorage.ensureMcpJson();
+        console.log('MCP client configuration (.mcp.json) is ready');
+    } catch (error) {
+        console.warn('Failed to ensure .mcp.json:', error);
+    }
 
     // 检查是否需要自动启动MCP服务器
     (async () => {
