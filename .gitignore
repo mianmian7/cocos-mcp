@@ -1,6 +1,9 @@
 # Build output
 dist/
 
+# Release output
+release/
+
 # IDE
 .vscode/
 
