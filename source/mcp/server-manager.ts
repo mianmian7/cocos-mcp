@@ -31,6 +31,12 @@ import { registerOperatePrefabAssetsTool } from "./tools/operate-prefab-assets.j
 import { registerOperateScriptsAndTextTool } from "./tools/operate-scripts-and-text.js";
 import { registerExecuteSceneCodeTool } from "./tools/execute-scene-code.js";
 
+// Import new gateway tools
+import { registerGetEditorContextTool } from "./tools/get-editor-context.js";
+import { registerEditorRequestTool } from "./tools/editor-request.js";
+import { registerApplyGatedActionTool } from "./tools/apply-gated-action.js";
+import { registerSearchNodesTool } from "./tools/search-nodes.js";
+
 // Legacy interface for backward compatibility
 export interface ServerConfig {
   port: number;
@@ -72,10 +78,25 @@ export class McpServerManager {
       version: this.config.version
     });
 
-    // Register tools based on configuration
+// Register tools based on configuration
     const tools = this.config.tools;
     console.log('Registering tools with config:', tools);
     
+    // === Gateway tools (recommended for AI programming workflows) ===
+    if (tools.getEditorContext) {
+      registerGetEditorContextTool(server);
+    }
+    if (tools.editorRequest) {
+      registerEditorRequestTool(server);
+    }
+    if (tools.applyGatedAction) {
+      registerApplyGatedActionTool(server);
+    }
+    if (tools.searchNodes) {
+      registerSearchNodesTool(server);
+    }
+    
+    // === Legacy tools (for backward compatibility) ===
     // Core tools (always needed for basic functionality)
     if (tools.createNodes) {
       registerCreateNodesTool(server);

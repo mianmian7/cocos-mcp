@@ -32,33 +32,39 @@ export interface ImageGenerationConfig {
 }
 
 export interface McpServerToolConfig {
+  // Gateway tools (recommended for AI programming workflows)
+  getEditorContext: boolean;
+  editorRequest: boolean;
+  applyGatedAction: boolean;
+  searchNodes: boolean;
+
   // Core tools (always enabled)
   createNodes: boolean;
   modifyNodes: boolean;
   queryNodes: boolean;
   queryComponents: boolean;
   modifyComponents: boolean;
-  
+
   // Scene and asset tools
   operateCurrentScene: boolean;
   operatePrefabAssets: boolean;
   operateAssets: boolean;
   nodeLinkedPrefabsOperations: boolean;
-  
+
   // Discovery tools
   getAvailableComponentTypes: boolean;
   getAvailableAssetTypes: boolean;
   getAssetsByType: boolean;
-  
+
   // Generation tools
   generateImageAsset: boolean;
-  
+
   // Project tools
   operateProjectSettings: boolean;
-  
+
   // File system tools (optional)
   operateScriptsAndText: boolean;
-  
+
   // Code execution tools (optional, security-sensitive)
   executeSceneCode: boolean;
 }
@@ -121,33 +127,39 @@ export const DEFAULT_IMAGE_GENERATION_CONFIG: ImageGenerationConfig = {
 };
 
 export const DEFAULT_TOOL_CONFIG: McpServerToolConfig = {
+  // Gateway tools (enabled by default for AI programming workflows)
+  getEditorContext: true,
+  editorRequest: true,
+  applyGatedAction: true,
+  searchNodes: true,
+
   // Core tools (enabled by default)
   createNodes: true,
   modifyNodes: true,
   queryNodes: true,
   queryComponents: true,
   modifyComponents: true,
-  
+
   // Scene and asset tools (enabled by default)
   operateCurrentScene: true,
   operatePrefabAssets: true,
   operateAssets: true,
   nodeLinkedPrefabsOperations: true,
-  
+
   // Discovery tools (enabled by default)
   getAvailableComponentTypes: true,
   getAvailableAssetTypes: true,
   getAssetsByType: true,
-  
+
   // Generation tools (enabled by default)
   generateImageAsset: true,
-  
+
   // Project tools (enabled by default)
   operateProjectSettings: true,
-  
+
   // File system tools (disabled by default for security)
   operateScriptsAndText: false,
-  
+
   // Code execution tools (enabled by default for AI programming workflows)
   executeSceneCode: true,
 };
