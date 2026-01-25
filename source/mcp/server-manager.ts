@@ -61,7 +61,7 @@ export class McpServerManager {
     this.configStorage = new ConfigStorage();
     // Load saved configuration on startup
     this.config = this.configStorage.loadConfig();
-    
+
     // Initialize image generation service
     this.imageGenerationService = new ImageGenerationService(this.config.imageGeneration);
     // Set static instance reference
@@ -78,10 +78,10 @@ export class McpServerManager {
       version: this.config.version
     });
 
-// Register tools based on configuration
+    // Register tools based on configuration
     const tools = this.config.tools;
     console.log('Registering tools with config:', tools);
-    
+
     // === Gateway tools (recommended for AI programming workflows) ===
     if (tools.getEditorContext) {
       registerGetEditorContextTool(server);
@@ -95,7 +95,7 @@ export class McpServerManager {
     if (tools.searchNodes) {
       registerSearchNodesTool(server);
     }
-    
+
     // === Legacy tools (for backward compatibility) ===
     // Core tools (always needed for basic functionality)
     if (tools.createNodes) {
@@ -113,7 +113,7 @@ export class McpServerManager {
     if (tools.modifyComponents) {
       registerModifyComponentsTool(server);
     }
-    
+
     // Scene and asset tools
     if (tools.operateCurrentScene) {
       registerOperateCurrentSceneTool(server);
@@ -127,7 +127,7 @@ export class McpServerManager {
     if (tools.nodeLinkedPrefabsOperations) {
       registerNodeLinkedPrefabsOperationsTool(server);
     }
-    
+
     // Discovery tools
     if (tools.getAvailableComponentTypes) {
       registerGetAvailableComponentTypesTool(server);
@@ -138,7 +138,7 @@ export class McpServerManager {
     if (tools.getAssetsByType) {
       registerGetAssetsByTypeTool(server);
     }
-    
+
     // Generation tools
     if (tools.generateImageAsset) {
       console.log('Registering generateImageAsset tool...');
@@ -146,17 +146,17 @@ export class McpServerManager {
     } else {
       console.log('generateImageAsset tool is disabled in config');
     }
-    
+
     // Project tools
     if (tools.operateProjectSettings) {
       registerOperateProjectSettingsTool(server);
     }
-    
+
     // File system tools (security-sensitive)
     if (tools.operateScriptsAndText) {
       registerOperateScriptsAndTextTool(server);
     }
-    
+
     // Code execution tools (security-sensitive)
     if (tools.executeSceneCode) {
       registerExecuteSceneCodeTool(server);
@@ -192,10 +192,10 @@ export class McpServerManager {
         version: legacyConfig.version ?? this.config.version
       };
     }
-    
+
     // Update image generation service configuration
     this.imageGenerationService.updateConfig(this.config.imageGeneration);
-    
+
     // Save configuration to disk
     this.configStorage.saveConfig(this.config);
   }
@@ -269,7 +269,7 @@ export class McpServerManager {
       // Create Express app
       this.expressApp = express();
       this.expressApp.use(express.json());
-      
+
       // Add CORS headers
       this.expressApp.use((req, res, next) => {
         res.header('Access-Control-Allow-Origin', '*');
@@ -341,7 +341,7 @@ export class McpServerManager {
           res.status(400).send('Invalid or missing session ID');
           return;
         }
-        
+
         const transport = this.transports[sessionId];
         await transport.handleRequest(req, res);
       };
@@ -358,7 +358,7 @@ export class McpServerManager {
         try {
           // Create new MCP server for this SSE connection
           const server = this.createMcpServer();
-          
+
           // Create SSE transport using the SDK's built-in class
           // The POST endpoint should be different from the GET endpoint
           const sseTransport = new SseMcpServerTransport('/mcp-sse-messages', res, {
@@ -397,7 +397,7 @@ export class McpServerManager {
 
           // Connect the transport to the MCP server
           await server.connect(sseTransport);
-          
+
           console.log(`SSE transport established with session ID: ${sseTransport.sessionId}`);
         } catch (error) {
           console.error('Error establishing SSE transport:', error);
@@ -412,13 +412,13 @@ export class McpServerManager {
         console.log('Received POST request to /mcp-sse-messages');
         // Extract session ID from query parameter (as per SSE protocol)
         const sessionId = req.query.sessionId as string;
-        
+
         if (!sessionId) {
           console.error('No session ID provided in request URL');
           res.status(400).send('Missing sessionId parameter');
           return;
         }
-        
+
         const sseTransport = this.sseTransports[sessionId];
 
         if (sseTransport) {
@@ -500,7 +500,7 @@ export class McpServerManager {
       }
 
       this.isRunning = true;
-      console.log(`MCP server started on port ${this.config.port}`);
+      console.log(`HTTP server started on port ${this.config.port}`);
     } catch (error) {
       this.isRunning = false;
       this.server = null;
@@ -552,8 +552,8 @@ export class McpServerManager {
       this.transport = null;
       this.expressApp = null;
       this.isRunning = false;
-      
-      console.log("MCP server stopped");
+
+      console.log("HTTP server stopped");
     } catch (error) {
       console.error("Error stopping server:", error);
       throw error;

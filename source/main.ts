@@ -3,27 +3,27 @@ import packageJSON from '../package.json';
 import { DEFAULT_IMAGE_GENERATION_CONFIG } from './mcp/config.js';
 import { ConfigStorage } from './mcp/config-storage.js';
 
-// Try importing the server manager
-let McpServerManager: any = null;
-let serverManager: any = null;
+// Try importing the HTTP server
+let HttpToolServer: any = null;
+let httpServer: any = null;
 
-// Lazy load the server manager to avoid immediate import issues
-async function getServerManager() {
-    if (!McpServerManager) {
+// Lazy load the HTTP server to avoid immediate import issues
+async function getHttpServer() {
+    if (!HttpToolServer) {
         try {
-            const module = await import('./mcp/server-manager');
-            McpServerManager = module.McpServerManager;
+            const module = await import('./http/http-tool-server.js');
+            HttpToolServer = module.HttpToolServer;
         } catch (error) {
-            console.error('Failed to import McpServerManager:', error);
+            console.error('Failed to import HttpToolServer:', error);
             throw error;
         }
     }
-    
-    if (!serverManager) {
-        serverManager = new McpServerManager();
+
+    if (!httpServer) {
+        httpServer = new HttpToolServer();
     }
-    
-    return serverManager;
+
+    return httpServer;
 }
 
 /**
@@ -31,30 +31,30 @@ async function getServerManager() {
  * @zh 扩展启动时触发的方法
  */
 export const load: () => void = function () {
-    console.log('MCP Extension loaded');
+    console.log('Cocos HTTP Extension loaded');
 
-    // Ensure .mcp.json exists for AI client configuration
+    // Ensure config file exists for CLI/HTTP client configuration
     try {
         const configStorage = new ConfigStorage();
         configStorage.ensureMcpJson();
-        console.log('MCP client configuration (.mcp.json) is ready');
+        console.log('HTTP server configuration is ready');
     } catch (error) {
-        console.warn('Failed to ensure .mcp.json:', error);
+        console.warn('Failed to ensure config:', error);
     }
 
-    // 检查是否需要自动启动MCP服务器
+    // Auto-start HTTP server if configured
     (async () => {
         try {
-            const manager = await getServerManager();
-            const info = manager.getServerInfo();
+            const server = await getHttpServer();
+            const info = server.getServerInfo();
 
             if (info.config.autoStart && !info.isRunning) {
-                console.log('Auto-starting MCP server...');
-                await manager.startServer();
-                console.log('MCP server auto-started successfully');
+                console.log('Auto-starting HTTP tool server...');
+                await server.startServer();
+                console.log('HTTP tool server auto-started successfully');
             }
         } catch (error) {
-            console.error('Failed to auto-start MCP server:', error);
+            console.error('Failed to auto-start HTTP tool server:', error);
         }
     })();
 };
@@ -65,15 +65,15 @@ export const load: () => void = function () {
  */
 export const unload: () => Promise<void> = async function () {
     try {
-        const result = await methods.stopMcpServer();
+        const result = await methods.stopHttpServer();
         if (result?.success === false) {
-            console.error('Failed to stop MCP server during unload:', result.message);
+            console.error('Failed to stop HTTP server during unload:', result.message);
         }
     } catch (error) {
-        console.error('Error stopping MCP server during unload:', error);
+        console.error('Error stopping HTTP server during unload:', error);
     }
 
-    console.log('MCP Extension unloaded');
+    console.log('Cocos MCP Extension unloaded');
 };
 
 export const methods: Record<string, (...args: any[]) => any> = {
@@ -100,8 +100,8 @@ export const methods: Record<string, (...args: any[]) => any> = {
      */
     async getImageConfig() {
         try {
-            const manager = await getServerManager();
-            return manager.getImageConfig();
+            const server = await getHttpServer();
+            return server.getImageConfig();
         } catch (error) {
             console.error('Error getting image config:', error);
             return {
@@ -116,14 +116,14 @@ export const methods: Record<string, (...args: any[]) => any> = {
      */
     async saveImageConfig(config: any) {
         try {
-            const manager = await getServerManager();
-            await manager.saveImageConfig(config);
+            const server = await getHttpServer();
+            await server.saveImageConfig(config);
             return { success: true };
         } catch (error) {
             console.error('Error saving image config:', error);
-            return { 
-                success: false, 
-                message: error instanceof Error ? error.message : String(error) 
+            return {
+                success: false,
+                message: error instanceof Error ? error.message : String(error)
             };
         }
     },
@@ -133,14 +133,14 @@ export const methods: Record<string, (...args: any[]) => any> = {
      */
     async testProvider(params: { providerId: string; testPrompt: string }) {
         try {
-            const manager = await getServerManager();
-            const result = await manager.testImageProvider(params.providerId, params.testPrompt);
+            const server = await getHttpServer();
+            const result = await server.testImageProvider(params.providerId, params.testPrompt);
             return result;
         } catch (error) {
             console.error('Error testing provider:', error);
-            return { 
-                success: false, 
-                error: error instanceof Error ? error.message : String(error) 
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error)
             };
         }
     },
@@ -150,14 +150,14 @@ export const methods: Record<string, (...args: any[]) => any> = {
      */
     async fetchProviderModels(params: { providerId: string }) {
         try {
-            const manager = await getServerManager();
-            const result = await manager.fetchProviderModels(params.providerId);
+            const server = await getHttpServer();
+            const result = await server.fetchProviderModels(params.providerId);
             return result;
         } catch (error) {
             console.error('Error fetching provider models:', error);
-            return { 
-                success: false, 
-                error: error instanceof Error ? error.message : String(error) 
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error)
             };
         }
     },
@@ -167,66 +167,66 @@ export const methods: Record<string, (...args: any[]) => any> = {
      */
     async resetImageConfig() {
         try {
-            const manager = await getServerManager();
-            await manager.resetImageConfig();
+            const server = await getHttpServer();
+            await server.resetImageConfig();
             return { success: true };
         } catch (error) {
             console.error('Error resetting image config:', error);
-            return { 
-                success: false, 
-                message: error instanceof Error ? error.message : String(error) 
+            return {
+                success: false,
+                message: error instanceof Error ? error.message : String(error)
             };
         }
     },
 
     /**
-     * Start MCP server
+     * Start HTTP tool server
      */
-    async startMcpServer(config: any) {
+    async startHttpServer(config: any) {
         try {
-            console.log('Starting MCP server with config:', config);
-            
-            const manager = await getServerManager();
+            console.log('Starting HTTP tool server with config:', config);
+
+            const server = await getHttpServer();
             if (config) {
-                manager.updateConfig(config);
+                server.updateConfig(config);
             }
-            await manager.startServer();
-            
-            return { success: true, message: "MCP server started successfully" };
+            await server.startServer();
+
+            return { success: true, message: "HTTP tool server started successfully" };
         } catch (error) {
-            console.error('Error starting MCP server:', error);
-            return { 
-                success: false, 
-                message: error instanceof Error ? error.message : String(error) 
+            console.error('Error starting HTTP tool server:', error);
+            return {
+                success: false,
+                message: error instanceof Error ? error.message : String(error)
             };
         }
     },
 
     /**
-     * Stop MCP server  
+     * Stop HTTP tool server
      */
-    async stopMcpServer() {
+    async stopHttpServer() {
         try {
-            if (serverManager) {
-                await serverManager.stopServer();
-                return { success: true, message: "MCP server stopped successfully" };
+            if (httpServer) {
+                await httpServer.stopServer();
+                return { success: true, message: "HTTP tool server stopped successfully" };
             }
-            return { success: true, message: "MCP server was not running" };
+            return { success: true, message: "HTTP tool server was not running" };
         } catch (error) {
-            return { 
-                success: false, 
-                message: error instanceof Error ? error.message : String(error) 
+            return {
+                success: false,
+                message: error instanceof Error ? error.message : String(error)
             };
         }
     },
 
     /**
-     * Get MCP server status and configuration
+     * Get HTTP server status and configuration
      */
-    async getMcpServerInfo() {
+    async getHttpServerInfo() {
         try {
-            const manager = await getServerManager();
-            const info = manager.getServerInfo();
+            const server = await getHttpServer();
+            const info = server.getServerInfo();
             return {
                 isRunning: info.isRunning,
                 config: info.config
@@ -262,56 +262,73 @@ export const methods: Record<string, (...args: any[]) => any> = {
     },
 
     /**
-     * Update MCP server configuration
+     * Update HTTP server configuration
      */
-    async updateMcpServerConfig(config: any) {
+    async updateHttpServerConfig(config: any) {
         try {
-            const manager = await getServerManager();
-            manager.updateConfig(config);
+            const server = await getHttpServer();
+            server.updateConfig(config);
             return { success: true };
         } catch (error) {
-            return { 
-                success: false, 
-                message: error instanceof Error ? error.message : String(error) 
+            return {
+                success: false,
+                message: error instanceof Error ? error.message : String(error)
             };
         }
     },
 
+    // Backward compatibility aliases (keep old names working)
+    async startMcpServer(config: any) {
+        return methods.startHttpServer(config);
+    },
+
+    async stopMcpServer() {
+        return methods.stopHttpServer();
+    },
+
+    async getMcpServerInfo() {
+        return methods.getHttpServerInfo();
+    },
+
+    async updateMcpServerConfig(config: any) {
+        return methods.updateHttpServerConfig(config);
+    },
+
     // Alternative method names for the UI
-    'start-mcp-server': async function(config: any) {
-        return this.startMcpServer(config);
+    'start-mcp-server': async function (config: any) {
+        return methods.startHttpServer(config);
     },
 
-    'stop-mcp-server': async function() {
-        return this.stopMcpServer();
+    'stop-mcp-server': async function () {
+        return methods.stopHttpServer();
     },
 
-    'get-mcp-server-info': async function() {
-        return this.getMcpServerInfo();
+    'get-mcp-server-info': async function () {
+        return methods.getHttpServerInfo();
     },
 
-    'update-mcp-server-config': async function(config: any) {
-        return this.updateMcpServerConfig(config);
+    'update-mcp-server-config': async function (config: any) {
+        return methods.updateHttpServerConfig(config);
     },
 
     // AI Configuration method aliases
-    'get-image-config': async function() {
-        return this.getImageConfig();
+    'get-image-config': async function () {
+        return methods.getImageConfig();
     },
 
-    'save-image-config': async function(config: any) {
-        return this.saveImageConfig(config);
+    'save-image-config': async function (config: any) {
+        return methods.saveImageConfig(config);
     },
 
-    'test-provider': async function(params: { providerId: string; testPrompt: string }) {
-        return this.testProvider(params);
+    'test-provider': async function (params: { providerId: string; testPrompt: string }) {
+        return methods.testProvider(params);
     },
 
-    'fetch-provider-models': async function(params: { providerId: string }) {
-        return this.fetchProviderModels(params);
+    'fetch-provider-models': async function (params: { providerId: string }) {
+        return methods.fetchProviderModels(params);
     },
 
-    'reset-image-config': async function() {
-        return this.resetImageConfig();
+    'reset-image-config': async function () {
+        return methods.resetImageConfig();
     }
 };

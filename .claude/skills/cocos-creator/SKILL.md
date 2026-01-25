@@ -1,192 +1,182 @@
 ---
 name: cocos-creator-editor
 description: |
-  Control Cocos Creator editor through MCP gateway tools.
+  Control Cocos Creator editor through HTTP API and CLI.
   Use for: scene editing, node manipulation, asset management, component operations.
   Triggers: cocos, game development, scene, node, prefab, sprite, component, 3D, 2D game
-version: 1.0.0
+version: 2.0.0
 license: MIT
 compatibility:
   platforms:
     - windows
     - macos
-  tools:
-    - get_editor_context
-    - search_nodes
-    - editor_request
-    - apply_gated_action
-allowed-tools:
-  - Bash
-  - Read
-  - Write
-  - get_editor_context
-  - search_nodes
-  - editor_request
-  - apply_gated_action
 ---
 
 # Cocos Creator Editor Control
 
-Control Cocos Creator editor via 4 MCP gateway tools.
+Control Cocos Creator editor via HTTP endpoints and CLI.
 
 ## Prerequisites
 
 1. Cocos Creator running with project open
-2. MCP server started: `Panel → cocos-mcp → MCP Server Settings → Start`
+2. HTTP server started: `Panel → cocos-mcp → MCP Server Settings → Start`
 
-## Tools
+## Quick Start
 
-| Tool | Purpose |
-|------|---------|
-| `get_editor_context` | Get editor state snapshot (supports large scenes with summaryOnly) |
-| `search_nodes` | Search nodes by name/component/path pattern |
-| `editor_request` | Call editor API (allowlist controlled) |
-| `apply_gated_action` | Execute risky operations (requires approval) |
+```bash
+# Get editor context
+python cocos-cli.py context
+
+# Search for nodes
+python cocos-cli.py search-nodes --name "Player*"
+
+# Create a node
+python cocos-cli.py create-nodes '{"nodes": [{"type": "Empty", "name": "MyNode"}]}'
+
+# Health check
+python cocos-cli.py health
+```
+
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `context` | Get editor context snapshot |
+| `search-nodes` | Search nodes by name/component/path |
+| `query-nodes` | Query node hierarchy |
+| `create-nodes` | Create nodes |
+| `modify-nodes` | Modify nodes |
+| `query-components` | Query components |
+| `modify-components` | Modify components |
+| `current-scene` | Operate current scene |
+| `assets` | Operate assets |
+| `prefab-assets` | Operate prefab assets |
+| `discovery` | Discovery endpoints |
+| `project-settings` | Operate project settings |
+| `scripts-text` | Operate scripts and text |
+| `execute-scene` | Execute scene code |
+| `editor-request` | Generic editor request |
+| `apply-gated-action` | Execute risky operations |
+| `tool` | Generic tool call |
+| `health` | Health check |
+| `tools` | List available tools |
+
+## HTTP Endpoints
+
+Base URL: `http://127.0.0.1:<port>/cocos`
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/cocos/health` | GET | Health check |
+| `/cocos/tools` | GET | List tools |
+| `/cocos/context` | GET/POST | Editor context |
+| `/cocos/search-nodes` | POST | Search nodes |
+| `/cocos/query-nodes` | POST | Query hierarchy |
+| `/cocos/create-nodes` | POST | Create nodes |
+| `/cocos/modify-nodes` | POST | Modify nodes |
+| `/cocos/query-components` | POST | Query components |
+| `/cocos/modify-components` | POST | Modify components |
+| `/cocos/current-scene` | POST | Scene operations |
+| `/cocos/assets` | POST | Asset operations |
+| `/cocos/prefab-assets` | POST | Prefab operations |
+| `/cocos/discovery/components` | GET | Available components |
+| `/cocos/discovery/assets` | GET | Available asset types |
+| `/cocos/project-settings` | POST | Project settings |
+| `/cocos/scripts-text` | POST | Script operations |
+| `/cocos/execute-scene` | POST | Execute scene code |
+| `/cocos/editor-request` | POST | Generic editor API |
+| `/cocos/apply-gated-action` | POST | Risky operations |
+| `/cocos/tool/:name` | POST | Generic tool call |
 
 ## Workflow
 
 ```
-1. get_editor_context  → Understand current state
-2. search_nodes        → Find specific nodes (large scenes)
-3. editor_request      → Perform read/write operations
-4. apply_gated_action  → Dangerous operations (delete, execute code)
-5. get_editor_context  → Verify results
+1. context           → Understand current state
+2. search-nodes      → Find specific nodes (large scenes)
+3. create-nodes      → Create new nodes
+4. modify-nodes      → Modify existing nodes
+5. context           → Verify results
 ```
-
-## Large Scene Handling (3000+ nodes)
-
-```json
-// 1. Get summary (uuid + name + childCount only)
-get_editor_context({
-  summaryOnly: true,
-  maxNodes: 3000,
-  maxDepth: 5
-})
-
-// 2. Search for specific nodes
-search_nodes({
-  namePattern: "Enemy*",
-  componentType: "Sprite",
-  limit: 50
-})
-
-// 3. Query specific branch
-get_editor_context({
-  parentUuid: "some-uuid",
-  maxDepth: 2
-})
-
-// 4. Get single node details
-editor_request({
-  channel: "scene",
-  command: "query-node",
-  args: ["node-uuid"]
-})
-```
-
-## search_nodes Examples
-
-```json
-// Find all nodes named "Enemy*"
-search_nodes({namePattern: "Enemy*"})
-
-// Find all nodes with Sprite component
-search_nodes({componentType: "Sprite"})
-
-// Find nodes under Canvas path
-search_nodes({pathPattern: "Canvas/*"})
-
-// Combined search with pagination
-search_nodes({
-  namePattern: "*Button*",
-  componentType: "Button",
-  limit: 20,
-  offset: 0
-})
-```
-
-## editor_request Commands
-
-### Scene Channel
-
-| Command | Mode | Args | Description |
-|---------|------|------|-------------|
-| `query-node` | read | `[uuid]` | Get single node details |
-| `query-scene-info` | read | `[]` | Get current scene info |
-| `query-classes` | read | `[]` | Get available component types |
-| `create-node` | write | `[{name?, parent?, type?}]` | Create node |
-| `remove-node` | write | `[{uuid}]` | Remove node |
-| `set-property` | write | `[{uuid, path, dump}]` | Set property |
-| `create-component` | write | `[{uuid, component}]` | Add component |
-| `save-scene` | write | `[]` | Save scene |
-
-> **Note**: Use `get_editor_context` for hierarchy overview (has size limits). Use `query-node` for single node details.
-
-### Asset-DB Channel
-
-| Command | Mode | Args | Description |
-|---------|------|------|-------------|
-| `query-asset-info` | read | `[urlOrUuid]` | Query asset |
-| `query-assets` | read | `[{pattern?, type?}]` | Batch query |
-| `create-asset` | write | `[url, content?]` | Create asset |
 
 ## Examples
 
-### Create a Cube at Position
+### Get Editor Context
 
-```json
-// Step 1: Create node
-editor_request({
-  channel: "scene",
-  command: "create-node",
-  args: [{name: "MyCube", type: "3D/Cube"}]
-})
-// Returns: {result: {uuid: "abc123"}}
+```bash
+# Basic context
+python cocos-cli.py context
 
-// Step 2: Set position
-editor_request({
-  channel: "scene", 
-  command: "set-property",
-  args: [{
-    uuid: "abc123",
-    path: "position",
-    dump: {type: "cc.Vec3", value: {x: 0, y: 2, z: 0}}
-  }]
-})
+# Summary only (for large scenes)
+python cocos-cli.py context --summary-only --max-nodes 3000
+
+# Query specific branch
+python cocos-cli.py context --parent-uuid "abc123"
 ```
 
-### Add Component
+### Search Nodes
 
-```json
-editor_request({
-  channel: "scene",
-  command: "create-component", 
-  args: [{uuid: "node-uuid", component: "cc.RigidBody"}]
-})
+```bash
+# By name pattern
+python cocos-cli.py search-nodes --name "Enemy*"
+
+# By component type
+python cocos-cli.py search-nodes --component "Sprite"
+
+# Combined search
+python cocos-cli.py search-nodes --name "*Button*" --component "Button" --limit 20
 ```
 
-### Delete Nodes (Requires Approval)
+### Create Nodes
 
-```json
-// Step 1: Request approval
-apply_gated_action({
-  action: "delete_nodes",
-  params: {uuids: ["uuid1", "uuid2"]}
-})
-// Returns: {approvalToken: "gated_xxx", requiresApproval: true}
+```bash
+# Create empty node
+python cocos-cli.py create-nodes '{"nodes": [{"type": "Empty", "name": "MyNode"}]}'
 
-// Step 2: Execute with token
-apply_gated_action({
-  action: "delete_nodes",
-  params: {uuids: ["uuid1", "uuid2"]},
-  approvalToken: "gated_xxx"
-})
+# Create 3D cube
+python cocos-cli.py create-nodes '{"nodes": [{"type": "3D/Cube", "name": "MyCube", "position": {"x": 0, "y": 2, "z": 0}}]}'
+
+# Create UI button under Canvas
+python cocos-cli.py create-nodes '{"nodes": [{"type": "UI/Button (with Label)", "name": "MyButton"}]}'
 ```
 
-### List Available Commands
+### Modify Nodes
 
-```json
-editor_request({listCommands: true})
+```bash
+# Set position
+python cocos-cli.py modify-nodes '{"modifications": [{"nodeUuid": "abc123", "properties": [{"path": "position", "value": {"x": 1, "y": 2, "z": 3}}]}]}'
+
+# Rename node
+python cocos-cli.py modify-nodes '{"modifications": [{"nodeUuid": "abc123", "properties": [{"path": "name", "value": "NewName"}]}]}'
+```
+
+### Execute Scene Code
+
+```bash
+python cocos-cli.py execute-scene '{"code": "console.log(\"Hello from scene!\")"}'
+```
+
+### Apply Gated Action (Two-Step)
+
+```bash
+# Step 1: Request approval
+python cocos-cli.py apply-gated-action '{"action": "delete_nodes", "params": {"uuids": ["uuid1"]}}'
+# Returns: {"approvalToken": "gated_xxx", "requiresApproval": true}
+
+# Step 2: Execute with token
+python cocos-cli.py apply-gated-action '{"action": "delete_nodes", "params": {"uuids": ["uuid1"]}, "approvalToken": "gated_xxx"}'
+```
+
+### Generic Editor Request
+
+```bash
+# Query single node
+python cocos-cli.py editor-request '{"channel": "scene", "command": "query-node", "args": ["node-uuid"]}'
+
+# Save scene
+python cocos-cli.py editor-request '{"channel": "scene", "command": "save-scene", "args": []}'
+
+# List available commands
+python cocos-cli.py editor-request '{"listCommands": true}'
 ```
 
 ## Property Paths
@@ -200,10 +190,10 @@ editor_request({listCommands: true})
 | `__comps__.0.enabled` | First component enabled |
 | `__comps__.0.color` | First component color |
 
-## Dump Types
+## Value Types
 
-| Type | Value Format |
-|------|--------------|
+| Type | Format |
+|------|--------|
 | `cc.Vec3` | `{x, y, z}` |
 | `cc.Vec2` | `{x, y}` |
 | `cc.Color` | `{r, g, b, a}` (0-255) |
@@ -212,7 +202,7 @@ editor_request({listCommands: true})
 | `String` | `"text"` |
 | `Number` | `123` |
 
-## apply_gated_action Types
+## Gated Actions
 
 | Action | Risk | Params |
 |--------|------|--------|
@@ -224,7 +214,7 @@ editor_request({listCommands: true})
 
 ## Tips
 
-1. Always `get_editor_context` before operations
-2. Use `listCommands: true` to see available commands
+1. Always check context before operations
+2. Use `--pretty` flag for readable JSON output
 3. High-risk actions need two-step approval
-4. Check `recentLogs` in context for errors
+4. Port auto-detected from `.cocos-mcp-config.json`
